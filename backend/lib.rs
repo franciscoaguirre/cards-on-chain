@@ -1,21 +1,23 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
+use ink::Address;
 use ink::prelude::{vec, vec::Vec};
 use scale::{Decode, Encode};
 
 pub type CardId = u32;
 pub type GameId = u32;
-pub type AccountId = ink::primitives::H160;
 
-#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+#[derive(Clone)]
+#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
+#[ink::scale_derive(Encode, Decode, TypeInfo)]
 pub enum CardType {
     Unit,
     Spell,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+#[derive(Clone)]
+#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
+#[ink::scale_derive(Encode, Decode, TypeInfo)]
 pub enum EffectType {
     None = 0,
     Taunt = 1,
@@ -24,8 +26,9 @@ pub enum EffectType {
     DamageFront = 4,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+#[derive(Clone)]
+#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
+#[ink::scale_derive(Encode, Decode, TypeInfo)]
 pub struct CardMetadata {
     pub id: CardId,
     pub name_hash: u32,
@@ -37,18 +40,20 @@ pub struct CardMetadata {
     pub effects: EffectType,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+#[derive(Clone)]
+#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
+#[ink::scale_derive(Encode, Decode, TypeInfo)]
 pub struct UnitInstance {
     pub card_id: CardId,
     pub current_hp: i16,
     pub acted_this_turn: bool,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+#[derive(Clone)]
+#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
+#[ink::scale_derive(Encode, Decode, TypeInfo)]
 pub struct PlayerState {
-    pub addr: AccountId,
+    pub addr: Address,
     pub hp: i16,
     pub energy: u8,
     pub max_energy: u8,
@@ -57,16 +62,18 @@ pub struct PlayerState {
     pub board: [Option<UnitInstance>; 4],
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+#[derive(PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "std", derive(Debug, ink::storage::traits::StorageLayout))]
+#[ink::scale_derive(Encode, Decode, TypeInfo)]
 pub enum GameStatus {
     WaitingForPlayers,
     InProgress,
     Finished,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+#[derive(Clone)]
+#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
+#[ink::scale_derive(Encode, Decode, TypeInfo)]
 pub struct Game {
     pub id: GameId,
     pub players: [PlayerState; 2],
@@ -75,8 +82,9 @@ pub struct Game {
     pub status: GameStatus,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+#[derive(Clone)]
+#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
+#[ink::scale_derive(Encode, Decode, TypeInfo)]
 pub enum ActionType {
     PlayCard { hand_index: u8, slot_index: u8 },
     UseSpell { hand_index: u8, target_slot: u8 },
@@ -93,14 +101,14 @@ mod cards_on_chain {
     pub struct CardsOnChain {
         // Card NFT storage
         cards: Mapping<CardId, CardMetadata>,
-        card_owners: Mapping<CardId, AccountId>,
+        card_owners: Mapping<CardId, Address>,
         next_card_id: CardId,
         
         // Game storage
         games: Mapping<GameId, Game>,
         next_game_id: GameId,
-        waiting_player: Option<AccountId>,
-        player_active_game: Mapping<AccountId, GameId>,
+        waiting_player: Option<Address>,
+        player_active_game: Mapping<Address, GameId>,
     }
 
     #[ink(event)]
@@ -108,7 +116,7 @@ mod cards_on_chain {
         #[ink(topic)]
         card_id: CardId,
         #[ink(topic)]
-        owner: AccountId,
+        owner: Address,
         metadata: CardMetadata,
     }
 
@@ -117,9 +125,9 @@ mod cards_on_chain {
         #[ink(topic)]
         game_id: GameId,
         #[ink(topic)]
-        player_a: AccountId,
+        player_a: Address,
         #[ink(topic)]
-        player_b: AccountId,
+        player_b: Address,
     }
 
     #[ink(event)]
@@ -127,7 +135,7 @@ mod cards_on_chain {
         #[ink(topic)]
         game_id: GameId,
         #[ink(topic)]
-        player: AccountId,
+        player: Address,
         action: ActionType,
     }
 
@@ -135,7 +143,7 @@ mod cards_on_chain {
     pub struct TurnEnded {
         #[ink(topic)]
         game_id: GameId,
-        new_active_player: AccountId,
+        new_active_player: Address,
         turn: u32,
     }
 
@@ -144,7 +152,7 @@ mod cards_on_chain {
         #[ink(topic)]
         game_id: GameId,
         #[ink(topic)]
-        winner: AccountId,
+        winner: Address,
     }
 
     #[derive(Debug, PartialEq, Eq, Encode, Decode)]
@@ -222,7 +230,7 @@ mod cards_on_chain {
         }
 
         #[ink(message)]
-        pub fn mint_card(&mut self, to: AccountId, metadata: CardMetadata) -> CardId {
+        pub fn mint_card(&mut self, to: Address, metadata: CardMetadata) -> CardId {
             let card_id = self.next_card_id;
             let mut card_metadata = metadata;
             card_metadata.id = card_id;
@@ -269,7 +277,7 @@ mod cards_on_chain {
             }
         }
 
-        fn create_game(&mut self, player_a: AccountId, player_b: AccountId) -> Result<GameId> {
+        fn create_game(&mut self, player_a: Address, player_b: Address) -> Result<GameId> {
             let game_id = self.next_game_id;
             
             // Create default deck for each player
@@ -547,7 +555,7 @@ mod cards_on_chain {
         }
 
         #[ink(message)]
-        pub fn get_player_game(&self, player: AccountId) -> Option<GameId> {
+        pub fn get_player_game(&self, player: Address) -> Option<GameId> {
             self.player_active_game.get(player)
         }
     }
@@ -565,7 +573,7 @@ mod cards_on_chain {
         #[ink::test]
         fn mint_card_works() {
             let mut contract = CardsOnChain::new();
-            let account = AccountId::from([0x1; 32]);
+            let account = Address::from([0x1; 20]);
             
             let metadata = CardMetadata {
                 id: 0, // Will be overwritten
@@ -590,8 +598,8 @@ mod cards_on_chain {
         #[ink::test]
         fn matchmaking_works() {
             let mut contract = CardsOnChain::new();
-            let alice = AccountId::from([0x1; 32]);
-            let bob = AccountId::from([0x2; 32]);
+            let alice = Address::from([0x1; 20]);
+            let bob = Address::from([0x2; 20]);
 
             // Set the contract caller to alice for the first registration
             ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
