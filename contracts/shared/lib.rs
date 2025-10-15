@@ -2,7 +2,6 @@
 
 use ink::prelude::vec::Vec;
 use ink::Address;
-use scale::{Decode, Encode};
 
 pub type CardId = u32;
 pub type GameId = u32;

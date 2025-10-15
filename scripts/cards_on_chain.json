@@ -1,0 +1,2307 @@
+{
+  "source": {
+    "hash": "0xcd719e00fb1bc78d1bfee08098abe053f6ce4e8c1c8cb273709799e1798dbcd6",
+    "language": "ink! 6.0.0-alpha.4",
+    "compiler": "rustc 1.89.0",
+    "build_info": {
+      "rust_toolchain": "stable-aarch64-apple-darwin",
+      "cargo_contract_version": "6.0.0-alpha.4",
+      "build_mode": "Debug"
+    }
+  },
+  "contract": {
+    "name": "cards_on_chain",
+    "version": "0.1.0",
+    "authors": [
+      "[your_name] <[your_email]>"
+    ]
+  },
+  "image": null,
+  "version": 6,
+  "types": [
+    {
+      "id": 0,
+      "type": {
+        "def": {
+          "primitive": "u32"
+        }
+      }
+    },
+    {
+      "id": 1,
+      "type": {
+        "def": {
+          "primitive": "u8"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": {
+        "path": [
+          "ink_storage",
+          "lazy",
+          "mapping",
+          "Mapping"
+        ],
+        "params": [
+          {
+            "name": "K",
+            "type": 0
+          },
+          {
+            "name": "V",
+            "type": 3
+          },
+          {
+            "name": "KeyType",
+            "type": 6
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": {
+        "path": [
+          "cards_on_chain",
+          "CardMetadata"
+        ],
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "id",
+                "type": 0,
+                "typeName": "CardId"
+              },
+              {
+                "name": "name_hash",
+                "type": 0,
+                "typeName": "u32"
+              },
+              {
+                "name": "rarity",
+                "type": 1,
+                "typeName": "u8"
+              },
+              {
+                "name": "card_type",
+                "type": 4,
+                "typeName": "CardType"
+              },
+              {
+                "name": "cost",
+                "type": 1,
+                "typeName": "u8"
+              },
+              {
+                "name": "attack",
+                "type": 1,
+                "typeName": "u8"
+              },
+              {
+                "name": "health",
+                "type": 1,
+                "typeName": "u8"
+              },
+              {
+                "name": "effects",
+                "type": 5,
+                "typeName": "EffectType"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": {
+        "path": [
+          "cards_on_chain",
+          "CardType"
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Unit",
+                "index": 0
+              },
+              {
+                "name": "Spell",
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": {
+        "path": [
+          "cards_on_chain",
+          "EffectType"
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "None",
+                "index": 0
+              },
+              {
+                "name": "Taunt",
+                "index": 1
+              },
+              {
+                "name": "Charge",
+                "index": 2
+              },
+              {
+                "name": "HealSelf",
+                "index": 3
+              },
+              {
+                "name": "DamageFront",
+                "index": 4
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": {
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ResolverKey"
+        ],
+        "params": [
+          {
+            "name": "L",
+            "type": 7
+          },
+          {
+            "name": "R",
+            "type": 8
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": {
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "AutoKey"
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": {
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ManualKey"
+        ],
+        "params": [
+          {
+            "name": "ParentKey",
+            "type": 9
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": {
+        "def": {
+          "tuple": []
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": {
+        "path": [
+          "primitive_types",
+          "H160"
+        ],
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 11,
+                "typeName": "[u8; 20]"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": {
+        "def": {
+          "array": {
+            "len": 20,
+            "type": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": {
+        "path": [
+          "ink_storage",
+          "lazy",
+          "mapping",
+          "Mapping"
+        ],
+        "params": [
+          {
+            "name": "K",
+            "type": 0
+          },
+          {
+            "name": "V",
+            "type": 10
+          },
+          {
+            "name": "KeyType",
+            "type": 13
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": {
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ResolverKey"
+        ],
+        "params": [
+          {
+            "name": "L",
+            "type": 7
+          },
+          {
+            "name": "R",
+            "type": 14
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": {
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ManualKey"
+        ],
+        "params": [
+          {
+            "name": "ParentKey",
+            "type": 9
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": {
+        "def": {
+          "primitive": "i16"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 0
+          }
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": {
+        "def": {
+          "primitive": "bool"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": {
+        "path": [
+          "ink_storage",
+          "lazy",
+          "mapping",
+          "Mapping"
+        ],
+        "params": [
+          {
+            "name": "K",
+            "type": 0
+          },
+          {
+            "name": "V",
+            "type": 19
+          },
+          {
+            "name": "KeyType",
+            "type": 26
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": {
+        "path": [
+          "cards_on_chain",
+          "Game"
+        ],
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "id",
+                "type": 0,
+                "typeName": "GameId"
+              },
+              {
+                "name": "players",
+                "type": 20,
+                "typeName": "[PlayerState; 2]"
+              },
+              {
+                "name": "active_idx",
+                "type": 1,
+                "typeName": "u8"
+              },
+              {
+                "name": "turn",
+                "type": 0,
+                "typeName": "u32"
+              },
+              {
+                "name": "status",
+                "type": 25,
+                "typeName": "GameStatus"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": {
+        "def": {
+          "array": {
+            "len": 2,
+            "type": 21
+          }
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": {
+        "path": [
+          "cards_on_chain",
+          "PlayerState"
+        ],
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "addr",
+                "type": 10,
+                "typeName": "Address"
+              },
+              {
+                "name": "hp",
+                "type": 15,
+                "typeName": "i16"
+              },
+              {
+                "name": "energy",
+                "type": 1,
+                "typeName": "u8"
+              },
+              {
+                "name": "max_energy",
+                "type": 1,
+                "typeName": "u8"
+              },
+              {
+                "name": "deck",
+                "type": 16,
+                "typeName": "Vec<CardId>"
+              },
+              {
+                "name": "hand",
+                "type": 16,
+                "typeName": "Vec<CardId>"
+              },
+              {
+                "name": "board",
+                "type": 22,
+                "typeName": "[Option<UnitInstance>; 4]"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": {
+        "def": {
+          "array": {
+            "len": 4,
+            "type": 23
+          }
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": {
+        "path": [
+          "Option"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 24
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "None",
+                "index": 0
+              },
+              {
+                "name": "Some",
+                "fields": [
+                  {
+                    "type": 24
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": {
+        "path": [
+          "cards_on_chain",
+          "UnitInstance"
+        ],
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "card_id",
+                "type": 0,
+                "typeName": "CardId"
+              },
+              {
+                "name": "current_hp",
+                "type": 15,
+                "typeName": "i16"
+              },
+              {
+                "name": "acted_this_turn",
+                "type": 17,
+                "typeName": "bool"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 25,
+      "type": {
+        "path": [
+          "cards_on_chain",
+          "GameStatus"
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "WaitingForPlayers",
+                "index": 0
+              },
+              {
+                "name": "InProgress",
+                "index": 1
+              },
+              {
+                "name": "Finished",
+                "index": 2
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 26,
+      "type": {
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ResolverKey"
+        ],
+        "params": [
+          {
+            "name": "L",
+            "type": 7
+          },
+          {
+            "name": "R",
+            "type": 27
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 27,
+      "type": {
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ManualKey"
+        ],
+        "params": [
+          {
+            "name": "ParentKey",
+            "type": 9
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 28,
+      "type": {
+        "path": [
+          "ink_storage",
+          "lazy",
+          "mapping",
+          "Mapping"
+        ],
+        "params": [
+          {
+            "name": "K",
+            "type": 10
+          },
+          {
+            "name": "V",
+            "type": 0
+          },
+          {
+            "name": "KeyType",
+            "type": 29
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 29,
+      "type": {
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ResolverKey"
+        ],
+        "params": [
+          {
+            "name": "L",
+            "type": 7
+          },
+          {
+            "name": "R",
+            "type": 30
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 30,
+      "type": {
+        "path": [
+          "ink_storage_traits",
+          "impls",
+          "ManualKey"
+        ],
+        "params": [
+          {
+            "name": "ParentKey",
+            "type": 9
+          }
+        ],
+        "def": {
+          "composite": {}
+        }
+      }
+    },
+    {
+      "id": 31,
+      "type": {
+        "path": [
+          "cards_on_chain",
+          "cards_on_chain",
+          "CardsOnChain"
+        ],
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "name": "cards",
+                "type": 2,
+                "typeName": "<Mapping<CardId, CardMetadata> as::ink::storage::traits::\nAutoStorableHint<::ink::storage::traits::ManualKey<3688429674u32,\n()>,>>::Type"
+              },
+              {
+                "name": "card_owners",
+                "type": 12,
+                "typeName": "<Mapping<CardId, Address> as::ink::storage::traits::\nAutoStorableHint<::ink::storage::traits::ManualKey<1033266213u32,\n()>,>>::Type"
+              },
+              {
+                "name": "next_card_id",
+                "type": 0,
+                "typeName": "<CardId as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<3251114127u32, ()>,>>::Type"
+              },
+              {
+                "name": "games",
+                "type": 18,
+                "typeName": "<Mapping<GameId, Game> as::ink::storage::traits::AutoStorableHint\n<::ink::storage::traits::ManualKey<2903737572u32, ()>,>>::Type"
+              },
+              {
+                "name": "next_game_id",
+                "type": 0,
+                "typeName": "<GameId as::ink::storage::traits::AutoStorableHint<::ink::\nstorage::traits::ManualKey<1763370840u32, ()>,>>::Type"
+              },
+              {
+                "name": "waiting_player",
+                "type": 32,
+                "typeName": "<Option<Address> as::ink::storage::traits::AutoStorableHint<::\nink::storage::traits::ManualKey<635928591u32, ()>,>>::Type"
+              },
+              {
+                "name": "player_active_game",
+                "type": 28,
+                "typeName": "<Mapping<Address, GameId> as::ink::storage::traits::\nAutoStorableHint<::ink::storage::traits::ManualKey<2755667192u32,\n()>,>>::Type"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 32,
+      "type": {
+        "path": [
+          "Option"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 10
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "None",
+                "index": 0
+              },
+              {
+                "name": "Some",
+                "fields": [
+                  {
+                    "type": 10
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 33,
+      "type": {
+        "path": [
+          "Result"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 9
+          },
+          {
+            "name": "E",
+            "type": 34
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Ok",
+                "fields": [
+                  {
+                    "type": 9
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "Err",
+                "fields": [
+                  {
+                    "type": 34
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 34,
+      "type": {
+        "path": [
+          "ink_primitives",
+          "LangError"
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "CouldNotReadInput",
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 35,
+      "type": {
+        "path": [
+          "Result"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 0
+          },
+          {
+            "name": "E",
+            "type": 34
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Ok",
+                "fields": [
+                  {
+                    "type": 0
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "Err",
+                "fields": [
+                  {
+                    "type": 34
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 36,
+      "type": {
+        "path": [
+          "Result"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 37
+          },
+          {
+            "name": "E",
+            "type": 34
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Ok",
+                "fields": [
+                  {
+                    "type": 37
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "Err",
+                "fields": [
+                  {
+                    "type": 34
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 37,
+      "type": {
+        "path": [
+          "Option"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 3
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "None",
+                "index": 0
+              },
+              {
+                "name": "Some",
+                "fields": [
+                  {
+                    "type": 3
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 38,
+      "type": {
+        "path": [
+          "Result"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 39
+          },
+          {
+            "name": "E",
+            "type": 34
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Ok",
+                "fields": [
+                  {
+                    "type": 39
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "Err",
+                "fields": [
+                  {
+                    "type": 34
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 39,
+      "type": {
+        "path": [
+          "Result"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 0
+          },
+          {
+            "name": "E",
+            "type": 40
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Ok",
+                "fields": [
+                  {
+                    "type": 0
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "Err",
+                "fields": [
+                  {
+                    "type": 40
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 40,
+      "type": {
+        "path": [
+          "cards_on_chain",
+          "cards_on_chain",
+          "Error"
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "GameNotFound",
+                "index": 0
+              },
+              {
+                "name": "NotYourTurn",
+                "index": 1
+              },
+              {
+                "name": "InvalidAction",
+                "index": 2
+              },
+              {
+                "name": "NotEnoughEnergy",
+                "index": 3
+              },
+              {
+                "name": "SlotOccupied",
+                "index": 4
+              },
+              {
+                "name": "InvalidSlot",
+                "index": 5
+              },
+              {
+                "name": "InvalidHandIndex",
+                "index": 6
+              },
+              {
+                "name": "GameAlreadyFinished",
+                "index": 7
+              },
+              {
+                "name": "AlreadyInGame",
+                "index": 8
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 41,
+      "type": {
+        "def": {
+          "sequence": {
+            "type": 42
+          }
+        }
+      }
+    },
+    {
+      "id": 42,
+      "type": {
+        "path": [
+          "cards_on_chain",
+          "ActionType"
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "PlayCard",
+                "fields": [
+                  {
+                    "name": "hand_index",
+                    "type": 1,
+                    "typeName": "u8"
+                  },
+                  {
+                    "name": "slot_index",
+                    "type": 1,
+                    "typeName": "u8"
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "UseSpell",
+                "fields": [
+                  {
+                    "name": "hand_index",
+                    "type": 1,
+                    "typeName": "u8"
+                  },
+                  {
+                    "name": "target_slot",
+                    "type": 1,
+                    "typeName": "u8"
+                  }
+                ],
+                "index": 1
+              },
+              {
+                "name": "EndTurn",
+                "index": 2
+              },
+              {
+                "name": "Concede",
+                "index": 3
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 43,
+      "type": {
+        "path": [
+          "Result"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 44
+          },
+          {
+            "name": "E",
+            "type": 34
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Ok",
+                "fields": [
+                  {
+                    "type": 44
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "Err",
+                "fields": [
+                  {
+                    "type": 34
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 44,
+      "type": {
+        "path": [
+          "Result"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 9
+          },
+          {
+            "name": "E",
+            "type": 40
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Ok",
+                "fields": [
+                  {
+                    "type": 9
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "Err",
+                "fields": [
+                  {
+                    "type": 40
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 45,
+      "type": {
+        "path": [
+          "Result"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 46
+          },
+          {
+            "name": "E",
+            "type": 34
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Ok",
+                "fields": [
+                  {
+                    "type": 46
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "Err",
+                "fields": [
+                  {
+                    "type": 34
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 46,
+      "type": {
+        "path": [
+          "Option"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 19
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "None",
+                "index": 0
+              },
+              {
+                "name": "Some",
+                "fields": [
+                  {
+                    "type": 19
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 47,
+      "type": {
+        "path": [
+          "Result"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 48
+          },
+          {
+            "name": "E",
+            "type": 34
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "Ok",
+                "fields": [
+                  {
+                    "type": 48
+                  }
+                ],
+                "index": 0
+              },
+              {
+                "name": "Err",
+                "fields": [
+                  {
+                    "type": 34
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 48,
+      "type": {
+        "path": [
+          "Option"
+        ],
+        "params": [
+          {
+            "name": "T",
+            "type": 0
+          }
+        ],
+        "def": {
+          "variant": {
+            "variants": [
+              {
+                "name": "None",
+                "index": 0
+              },
+              {
+                "name": "Some",
+                "fields": [
+                  {
+                    "type": 0
+                  }
+                ],
+                "index": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 49,
+      "type": {
+        "path": [
+          "ink_primitives",
+          "types",
+          "AccountId"
+        ],
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 50,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 50,
+      "type": {
+        "def": {
+          "array": {
+            "len": 32,
+            "type": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 51,
+      "type": {
+        "def": {
+          "primitive": "u128"
+        }
+      }
+    },
+    {
+      "id": 52,
+      "type": {
+        "path": [
+          "ink_primitives",
+          "types",
+          "Hash"
+        ],
+        "def": {
+          "composite": {
+            "fields": [
+              {
+                "type": 50,
+                "typeName": "[u8; 32]"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 53,
+      "type": {
+        "def": {
+          "primitive": "u64"
+        }
+      }
+    }
+  ],
+  "storage": {
+    "root": {
+      "root_key": "0x00000000",
+      "layout": {
+        "struct": {
+          "name": "CardsOnChain",
+          "fields": [
+            {
+              "name": "cards",
+              "layout": {
+                "root": {
+                  "root_key": "0x6af8d8db",
+                  "layout": {
+                    "struct": {
+                      "name": "CardMetadata",
+                      "fields": [
+                        {
+                          "name": "id",
+                          "layout": {
+                            "leaf": {
+                              "key": "0x6af8d8db",
+                              "ty": 0
+                            }
+                          }
+                        },
+                        {
+                          "name": "name_hash",
+                          "layout": {
+                            "leaf": {
+                              "key": "0x6af8d8db",
+                              "ty": 0
+                            }
+                          }
+                        },
+                        {
+                          "name": "rarity",
+                          "layout": {
+                            "leaf": {
+                              "key": "0x6af8d8db",
+                              "ty": 1
+                            }
+                          }
+                        },
+                        {
+                          "name": "card_type",
+                          "layout": {
+                            "enum": {
+                              "name": "CardType",
+                              "dispatchKey": "0x6af8d8db",
+                              "variants": {
+                                "0": {
+                                  "name": "Unit",
+                                  "fields": []
+                                },
+                                "1": {
+                                  "name": "Spell",
+                                  "fields": []
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "name": "cost",
+                          "layout": {
+                            "leaf": {
+                              "key": "0x6af8d8db",
+                              "ty": 1
+                            }
+                          }
+                        },
+                        {
+                          "name": "attack",
+                          "layout": {
+                            "leaf": {
+                              "key": "0x6af8d8db",
+                              "ty": 1
+                            }
+                          }
+                        },
+                        {
+                          "name": "health",
+                          "layout": {
+                            "leaf": {
+                              "key": "0x6af8d8db",
+                              "ty": 1
+                            }
+                          }
+                        },
+                        {
+                          "name": "effects",
+                          "layout": {
+                            "enum": {
+                              "name": "EffectType",
+                              "dispatchKey": "0x6af8d8db",
+                              "variants": {
+                                "0": {
+                                  "name": "None",
+                                  "fields": []
+                                },
+                                "1": {
+                                  "name": "Taunt",
+                                  "fields": []
+                                },
+                                "2": {
+                                  "name": "Charge",
+                                  "fields": []
+                                },
+                                "3": {
+                                  "name": "HealSelf",
+                                  "fields": []
+                                },
+                                "4": {
+                                  "name": "DamageFront",
+                                  "fields": []
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "ty": 2
+                }
+              }
+            },
+            {
+              "name": "card_owners",
+              "layout": {
+                "root": {
+                  "root_key": "0x2564963d",
+                  "layout": {
+                    "leaf": {
+                      "key": "0x2564963d",
+                      "ty": 10
+                    }
+                  },
+                  "ty": 12
+                }
+              }
+            },
+            {
+              "name": "next_card_id",
+              "layout": {
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 0
+                }
+              }
+            },
+            {
+              "name": "games",
+              "layout": {
+                "root": {
+                  "root_key": "0xe48413ad",
+                  "layout": {
+                    "struct": {
+                      "name": "Game",
+                      "fields": [
+                        {
+                          "name": "id",
+                          "layout": {
+                            "leaf": {
+                              "key": "0xe48413ad",
+                              "ty": 0
+                            }
+                          }
+                        },
+                        {
+                          "name": "players",
+                          "layout": {
+                            "array": {
+                              "offset": "0xe48413ad",
+                              "len": 2,
+                              "layout": {
+                                "struct": {
+                                  "name": "PlayerState",
+                                  "fields": [
+                                    {
+                                      "name": "addr",
+                                      "layout": {
+                                        "leaf": {
+                                          "key": "0xe48413ad",
+                                          "ty": 10
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "name": "hp",
+                                      "layout": {
+                                        "leaf": {
+                                          "key": "0xe48413ad",
+                                          "ty": 15
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "name": "energy",
+                                      "layout": {
+                                        "leaf": {
+                                          "key": "0xe48413ad",
+                                          "ty": 1
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "name": "max_energy",
+                                      "layout": {
+                                        "leaf": {
+                                          "key": "0xe48413ad",
+                                          "ty": 1
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "name": "deck",
+                                      "layout": {
+                                        "leaf": {
+                                          "key": "0xe48413ad",
+                                          "ty": 16
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "name": "hand",
+                                      "layout": {
+                                        "leaf": {
+                                          "key": "0xe48413ad",
+                                          "ty": 16
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "name": "board",
+                                      "layout": {
+                                        "array": {
+                                          "offset": "0xe48413ad",
+                                          "len": 4,
+                                          "layout": {
+                                            "enum": {
+                                              "name": "Option",
+                                              "dispatchKey": "0xe48413ad",
+                                              "variants": {
+                                                "0": {
+                                                  "name": "None",
+                                                  "fields": []
+                                                },
+                                                "1": {
+                                                  "name": "Some",
+                                                  "fields": [
+                                                    {
+                                                      "name": "0",
+                                                      "layout": {
+                                                        "struct": {
+                                                          "name": "UnitInstance",
+                                                          "fields": [
+                                                            {
+                                                              "name": "card_id",
+                                                              "layout": {
+                                                                "leaf": {
+                                                                  "key": "0xe48413ad",
+                                                                  "ty": 0
+                                                                }
+                                                              }
+                                                            },
+                                                            {
+                                                              "name": "current_hp",
+                                                              "layout": {
+                                                                "leaf": {
+                                                                  "key": "0xe48413ad",
+                                                                  "ty": 15
+                                                                }
+                                                              }
+                                                            },
+                                                            {
+                                                              "name": "acted_this_turn",
+                                                              "layout": {
+                                                                "leaf": {
+                                                                  "key": "0xe48413ad",
+                                                                  "ty": 17
+                                                                }
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "name": "active_idx",
+                          "layout": {
+                            "leaf": {
+                              "key": "0xe48413ad",
+                              "ty": 1
+                            }
+                          }
+                        },
+                        {
+                          "name": "turn",
+                          "layout": {
+                            "leaf": {
+                              "key": "0xe48413ad",
+                              "ty": 0
+                            }
+                          }
+                        },
+                        {
+                          "name": "status",
+                          "layout": {
+                            "enum": {
+                              "name": "GameStatus",
+                              "dispatchKey": "0xe48413ad",
+                              "variants": {
+                                "0": {
+                                  "name": "WaitingForPlayers",
+                                  "fields": []
+                                },
+                                "1": {
+                                  "name": "InProgress",
+                                  "fields": []
+                                },
+                                "2": {
+                                  "name": "Finished",
+                                  "fields": []
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "ty": 18
+                }
+              }
+            },
+            {
+              "name": "next_game_id",
+              "layout": {
+                "leaf": {
+                  "key": "0x00000000",
+                  "ty": 0
+                }
+              }
+            },
+            {
+              "name": "waiting_player",
+              "layout": {
+                "enum": {
+                  "name": "Option",
+                  "dispatchKey": "0x00000000",
+                  "variants": {
+                    "0": {
+                      "name": "None",
+                      "fields": []
+                    },
+                    "1": {
+                      "name": "Some",
+                      "fields": [
+                        {
+                          "name": "0",
+                          "layout": {
+                            "leaf": {
+                              "key": "0x00000000",
+                              "ty": 10
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "player_active_game",
+              "layout": {
+                "root": {
+                  "root_key": "0xf82440a4",
+                  "layout": {
+                    "leaf": {
+                      "key": "0xf82440a4",
+                      "ty": 0
+                    }
+                  },
+                  "ty": 28
+                }
+              }
+            }
+          ]
+        }
+      },
+      "ty": 31
+    }
+  },
+  "spec": {
+    "constructors": [
+      {
+        "label": "new",
+        "selector": "0x9bae9d5e",
+        "payable": false,
+        "args": [],
+        "returnType": {
+          "type": 33,
+          "displayName": [
+            "ink_primitives",
+            "ConstructorResult"
+          ]
+        },
+        "docs": [],
+        "default": false
+      }
+    ],
+    "messages": [
+      {
+        "label": "mint_card",
+        "selector": "0xa4b9aeb7",
+        "mutates": true,
+        "payable": false,
+        "args": [
+          {
+            "label": "to",
+            "type": {
+              "type": 10,
+              "displayName": [
+                "Address"
+              ]
+            }
+          },
+          {
+            "label": "metadata",
+            "type": {
+              "type": 3,
+              "displayName": [
+                "CardMetadata"
+              ]
+            }
+          }
+        ],
+        "returnType": {
+          "type": 35,
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ]
+        },
+        "docs": [],
+        "default": false
+      },
+      {
+        "label": "get_card",
+        "selector": "0x21bb4cfb",
+        "mutates": false,
+        "payable": false,
+        "args": [
+          {
+            "label": "card_id",
+            "type": {
+              "type": 0,
+              "displayName": [
+                "CardId"
+              ]
+            }
+          }
+        ],
+        "returnType": {
+          "type": 36,
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ]
+        },
+        "docs": [],
+        "default": false
+      },
+      {
+        "label": "register_for_match",
+        "selector": "0x2189994a",
+        "mutates": true,
+        "payable": false,
+        "args": [],
+        "returnType": {
+          "type": 38,
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ]
+        },
+        "docs": [],
+        "default": false
+      },
+      {
+        "label": "submit_turn_actions",
+        "selector": "0x827d9dc0",
+        "mutates": true,
+        "payable": false,
+        "args": [
+          {
+            "label": "game_id",
+            "type": {
+              "type": 0,
+              "displayName": [
+                "GameId"
+              ]
+            }
+          },
+          {
+            "label": "actions",
+            "type": {
+              "type": 41,
+              "displayName": [
+                "Vec"
+              ]
+            }
+          }
+        ],
+        "returnType": {
+          "type": 43,
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ]
+        },
+        "docs": [],
+        "default": false
+      },
+      {
+        "label": "get_game_state",
+        "selector": "0x32fcbc28",
+        "mutates": false,
+        "payable": false,
+        "args": [
+          {
+            "label": "game_id",
+            "type": {
+              "type": 0,
+              "displayName": [
+                "GameId"
+              ]
+            }
+          }
+        ],
+        "returnType": {
+          "type": 45,
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ]
+        },
+        "docs": [],
+        "default": false
+      },
+      {
+        "label": "get_player_game",
+        "selector": "0xe554a226",
+        "mutates": false,
+        "payable": false,
+        "args": [
+          {
+            "label": "player",
+            "type": {
+              "type": 10,
+              "displayName": [
+                "Address"
+              ]
+            }
+          }
+        ],
+        "returnType": {
+          "type": 47,
+          "displayName": [
+            "ink",
+            "MessageResult"
+          ]
+        },
+        "docs": [],
+        "default": false
+      }
+    ],
+    "events": [
+      {
+        "label": "CardMinted",
+        "module_path": "cards_on_chain::cards_on_chain",
+        "signature_topic": "0x28c7db3d87c992a12e51c8c11c0edeffd3d866d40e12d8fbee196f6243373c56",
+        "args": [
+          {
+            "label": "card_id",
+            "indexed": true,
+            "type": {
+              "type": 0,
+              "displayName": [
+                "CardId"
+              ]
+            },
+            "docs": []
+          },
+          {
+            "label": "owner",
+            "indexed": true,
+            "type": {
+              "type": 10,
+              "displayName": [
+                "Address"
+              ]
+            },
+            "docs": []
+          },
+          {
+            "label": "metadata",
+            "indexed": false,
+            "type": {
+              "type": 3,
+              "displayName": [
+                "CardMetadata"
+              ]
+            },
+            "docs": []
+          }
+        ],
+        "docs": []
+      },
+      {
+        "label": "GameStarted",
+        "module_path": "cards_on_chain::cards_on_chain",
+        "signature_topic": "0xa50158261e88fd062854cfa14876dcf222bcc1c63bc1a6390941c630eb514acf",
+        "args": [
+          {
+            "label": "game_id",
+            "indexed": true,
+            "type": {
+              "type": 0,
+              "displayName": [
+                "GameId"
+              ]
+            },
+            "docs": []
+          },
+          {
+            "label": "player_a",
+            "indexed": true,
+            "type": {
+              "type": 10,
+              "displayName": [
+                "Address"
+              ]
+            },
+            "docs": []
+          },
+          {
+            "label": "player_b",
+            "indexed": true,
+            "type": {
+              "type": 10,
+              "displayName": [
+                "Address"
+              ]
+            },
+            "docs": []
+          }
+        ],
+        "docs": []
+      },
+      {
+        "label": "ActionExecuted",
+        "module_path": "cards_on_chain::cards_on_chain",
+        "signature_topic": "0xb1ba3391d9a0b3fb847a8ec7304f8ee6d4ef1b4496873643cf9f8cb5a3710e60",
+        "args": [
+          {
+            "label": "game_id",
+            "indexed": true,
+            "type": {
+              "type": 0,
+              "displayName": [
+                "GameId"
+              ]
+            },
+            "docs": []
+          },
+          {
+            "label": "player",
+            "indexed": true,
+            "type": {
+              "type": 10,
+              "displayName": [
+                "Address"
+              ]
+            },
+            "docs": []
+          },
+          {
+            "label": "action",
+            "indexed": false,
+            "type": {
+              "type": 42,
+              "displayName": [
+                "ActionType"
+              ]
+            },
+            "docs": []
+          }
+        ],
+        "docs": []
+      },
+      {
+        "label": "TurnEnded",
+        "module_path": "cards_on_chain::cards_on_chain",
+        "signature_topic": "0xd7f374d164e7a8879545c103c6b72d620993fc3a9f8eb3ee26cd900d9be705c5",
+        "args": [
+          {
+            "label": "game_id",
+            "indexed": true,
+            "type": {
+              "type": 0,
+              "displayName": [
+                "GameId"
+              ]
+            },
+            "docs": []
+          },
+          {
+            "label": "new_active_player",
+            "indexed": false,
+            "type": {
+              "type": 10,
+              "displayName": [
+                "Address"
+              ]
+            },
+            "docs": []
+          },
+          {
+            "label": "turn",
+            "indexed": false,
+            "type": {
+              "type": 0,
+              "displayName": [
+                "u32"
+              ]
+            },
+            "docs": []
+          }
+        ],
+        "docs": []
+      },
+      {
+        "label": "GameEnded",
+        "module_path": "cards_on_chain::cards_on_chain",
+        "signature_topic": "0x63d125f443d206ec42850971773f5ee92ea4747b5fa7d4172528d31d7209c239",
+        "args": [
+          {
+            "label": "game_id",
+            "indexed": true,
+            "type": {
+              "type": 0,
+              "displayName": [
+                "GameId"
+              ]
+            },
+            "docs": []
+          },
+          {
+            "label": "winner",
+            "indexed": true,
+            "type": {
+              "type": 10,
+              "displayName": [
+                "Address"
+              ]
+            },
+            "docs": []
+          }
+        ],
+        "docs": []
+      }
+    ],
+    "docs": [],
+    "lang_error": {
+      "type": 34,
+      "displayName": [
+        "ink",
+        "LangError"
+      ]
+    },
+    "environment": {
+      "accountId": {
+        "type": 49,
+        "displayName": [
+          "AccountId"
+        ]
+      },
+      "balance": {
+        "type": 51,
+        "displayName": [
+          "Balance"
+        ]
+      },
+      "hash": {
+        "type": 52,
+        "displayName": [
+          "Hash"
+        ]
+      },
+      "timestamp": {
+        "type": 53,
+        "displayName": [
+          "Timestamp"
+        ]
+      },
+      "blockNumber": {
+        "type": 0,
+        "displayName": [
+          "BlockNumber"
+        ]
+      },
+      "nativeToEthRatio": 100000000,
+      "staticBufferSize": 16384
+    }
+  }
+}

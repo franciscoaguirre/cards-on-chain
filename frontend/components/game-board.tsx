@@ -7,12 +7,9 @@ import { ManaDisplay } from "@/components/mana-display";
 import { Button } from "@/components/ui/button";
 import {
   useSubmitTurnActions,
-  useGetPlayerGame,
-  useGetGameState,
-} from "@contract";
-import { useAccounts } from "@reactive-dot/react";
+} from "@/lib/contract/hooks";
 import { CARD_LIST } from "@/lib/cards";
-import { CONTRACT_ADDRESS } from "@/lib/contract/definition";
+import type { PolkadotSigner } from "polkadot-api";
 
 interface Card {
   id: number;
@@ -23,14 +20,13 @@ interface Card {
 }
 
 interface GameBoardProps {
+  signer: PolkadotSigner;
+  gameId: number;
   addLog: (message: string) => void;
 }
 
-export function GameBoard({ addLog }: GameBoardProps) {
-  const accounts = useAccounts();
-  // const [matchStatus, registerForMatch] = useRegisterForMatch(CONTRACT_ADDRESS)
-  const [turnStatus, submitTurnActions] =
-    useSubmitTurnActions(CONTRACT_ADDRESS);
+export function GameBoard({ signer, gameId, addLog }: GameBoardProps) {
+  const { execute: submitTurnActions, loading: turnLoading, error: turnError } = useSubmitTurnActions();
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [playerBoard, setPlayerBoard] = useState<(Card | null)[]>([
     null,
@@ -46,21 +42,21 @@ export function GameBoard({ addLog }: GameBoardProps) {
   ]);
   const [opponentHandCount, setOpponentHandCount] = useState(7);
   const [selectedCard, setSelectedCard] = useState<number | null>(null);
-  const [mana, setMana] = useState(10);
-  const [maxMana, setMaxMana] = useState(10);
+  const [energy, setEnergy] = useState(10);
+  const [maxEnergy, setMaxEnergy] = useState(10);
   const [turn, setTurn] = useState(1);
   const [pendingActions, setPendingActions] = useState<any[]>([]);
 
-  // After GameStarted, fetch game_id then game_state to render board
-  const playerAddress = accounts[0]?.address ?? "";
-  const gameId = useGetPlayerGame(CONTRACT_ADDRESS, playerAddress);
-  const gameState = gameId ? useGetGameState(CONTRACT_ADDRESS, gameId) : null;
-
-  useEffect(() => {
-    if (!gameState) return;
-    // Map on-chain game state to local UI when connected for real
-    // addLog(`[GAME_STATE] ${JSON.stringify(gameState)}`)
-  }, [gameState]);
+  // TODO: Fetch and update game state periodically
+  // const { execute: getGameState } = useGetGameState();
+  // useEffect(() => {
+  //   const fetchGameState = async () => {
+  //     const state = await getGameState(gameId);
+  //     // Map on-chain game state to local UI
+  //     addLog(`[GAME_STATE] ${JSON.stringify(state)}`);
+  //   };
+  //   fetchGameState();
+  // }, [gameId]);
 
   // Mock game start: deal hands and optionally place an opponent card
   useEffect(() => {
@@ -124,8 +120,8 @@ export function GameBoard({ addLog }: GameBoardProps) {
     const card = playerHand.find((c) => c.id === selectedCard);
     if (!card) return;
 
-    if (card.cost > mana) {
-      addLog("Not enough mana");
+    if (card.cost > energy) {
+      addLog("Not enough energy");
       return;
     }
 
@@ -138,8 +134,8 @@ export function GameBoard({ addLog }: GameBoardProps) {
     const handIndex = playerHand.findIndex((c) => c.id === selectedCard);
     setPlayerHand(playerHand.filter((_, i) => i !== handIndex));
 
-    // Deduct mana
-    setMana(mana - card.cost);
+    // Deduct energy
+    setEnergy(energy - card.cost);
 
     addLog(`Played ${card.name} to slot ${slotIndex + 1}`);
     // Queue on-chain action in order
@@ -169,16 +165,20 @@ export function GameBoard({ addLog }: GameBoardProps) {
     addLog(`Drew ${newCard.name}`);
   };
 
-  const handleEndTurn = () => {
+  const handleEndTurn = async () => {
     // Submit ordered actions for this turn + EndTurn
     const actionsToSubmit = [...pendingActions, "EndTurn"];
-    submitTurnActions(1, actionsToSubmit); // TODO: wire real gameId
-    addLog(`[ACTIONS_SUBMITTED] ${JSON.stringify(actionsToSubmit)}`);
-    setPendingActions([]);
-    setTurn(turn + 1);
-    setMana(maxMana);
-    addLog(`Turn ${turn + 1} started`);
-    addLog("Mana refreshed");
+    try {
+      await submitTurnActions(signer, gameId, actionsToSubmit);
+      addLog(`[ACTIONS_SUBMITTED] ${JSON.stringify(actionsToSubmit)}`);
+      setPendingActions([]);
+      setTurn(turn + 1);
+      setEnergy(maxEnergy);
+      addLog(`Turn ${turn + 1} started`);
+      addLog("Energy refreshed");
+    } catch (error) {
+      addLog(`[ERROR] Failed to submit turn: ${error}`);
+    }
   };
 
   return (
@@ -238,7 +238,7 @@ export function GameBoard({ addLog }: GameBoardProps) {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-primary font-bold">{"[PLAYER]"}</span>
             <div className="flex gap-4">
-              <ManaDisplay current={mana} max={maxMana} />
+              <ManaDisplay current={energy} max={maxEnergy} />
               <span className="text-xs text-muted-foreground">
                 Turn: {turn}
               </span>
@@ -251,7 +251,7 @@ export function GameBoard({ addLog }: GameBoardProps) {
                 card={card}
                 isSelected={selectedCard === card.id}
                 onClick={() => handleCardSelect(card.id)}
-                canAfford={card.cost <= mana}
+                canAfford={card.cost <= energy}
               />
             ))}
           </div>

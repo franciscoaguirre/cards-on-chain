@@ -1,15 +1,15 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
-use ink::Address;
 use shared::{
-    CardId, GameId, CardMetadata, CardType, EffectType, CardDataProvider,
+    CardId, GameId, CardMetadata, CardDataProvider,
     UnitInstance, PlayerState, GameStatus, Game, ActionType
 };
-
+use scale::{Encode, Decode};
 
 #[ink::contract]
 mod cards_on_chain {
     use super::*;
+    use ink::prelude::{vec, vec::Vec};
     use ink::storage::Mapping;
 
     #[ink(storage)]
@@ -288,7 +288,7 @@ mod cards_on_chain {
 
                     game.players[active_idx].board[slot_index as usize] = Some(UnitInstance {
                         card_id,
-                        current_hp: health,
+                        current_hp: card_data.health as i16,
                         acted_this_turn: false,
                     });
                 },

@@ -52,7 +52,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
-use shared::{CardMetadata, CardType, EffectType, CardDataProvider, CardId};
+use shared::{CardMetadata, CardDataProvider, CardId};
 
 #[ink::contract]
 mod cards {
