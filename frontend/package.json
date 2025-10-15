@@ -7,7 +7,7 @@
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "postinstall": "papi add pas -n paseo && papi"
+    "postinstall": "papi"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
