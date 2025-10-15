@@ -1,19 +1,40 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { useConnectedWallets } from "@reactive-dot/react"
+import { GameBoard } from "@/components/game-board"
+import { DebugLog } from "@/components/debug-log"
 
 export default function GameWaiting() {
     const router = useRouter()
     const wallets = useConnectedWallets()
+    const [gameStarted, setGameStarted] = useState(false)
+    const [logs, setLogs] = useState<string[]>([])
 
     useEffect(() => {
         if (wallets.length === 0) {
             router.replace("/")
         }
     }, [wallets, router])
+
+    useEffect(() => {
+        const id = setTimeout(() => {
+            setGameStarted(true)
+        }, 3000)
+        return () => clearTimeout(id)
+    }, [router])
+
+    if (gameStarted) {
+        return (
+            <main className="min-h-screen crt-effect">
+                <div className="container mx-auto p-4 max-w-3xl">
+                    <GameBoard addLog={(msg) => setLogs((prev) => [...prev, msg])} />
+                    <DebugLog logs={logs} />
+                </div>
+            </main>
+        )
+    }
 
     return (
         <main className="min-h-screen crt-effect">
