@@ -1,0 +1,5 @@
+node_modules/
+.next/
+.papi/
+.yarn
+.DS_Store
