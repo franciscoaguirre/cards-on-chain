@@ -9,6 +9,7 @@ import { paseo } from "@polkadot-api/descriptors"
 import { registerDotConnect } from "dot-connect"
 import "dot-connect/font.css"
 import { GameStateProvider } from "@/hooks/use-game-state"
+import { getWsProvider } from "@polkadot-api/ws-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     const [clientConfig, setClientConfig] = useState<ReturnType<typeof defineConfig> | null>(null)
@@ -16,12 +17,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const initRanRef = useRef(false)
     useEffect(() => {
         if (initRanRef.current) return
-        const lightClientProvider = createLightClientProvider()
         const cfg = defineConfig({
             chains: {
                 paseo: {
                     descriptor: paseo,
-                    provider: lightClientProvider.addRelayChain({ id: "paseo" }),
+                    provider: getWsProvider("wss://testnet-passet-hub.polkadot.io"),
                 },
             },
             wallets: [new InjectedWalletProvider()],

@@ -1,10 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card as GameCard } from "@/components/card"
 import { BoardSlot } from "@/components/board-slot"
 import { ManaDisplay } from "@/components/mana-display"
 import { Button } from "@/components/ui/button"
+import { useSubmitTurnActions, useGetPlayerGame, useGetGameState } from "@contract"
+import { useAccounts } from "@reactive-dot/react"
+import { CARD_LIST } from "@/lib/cards"
+import { CONTRACT_ADDRESS } from "@/lib/contract/definition"
 
 interface Card {
   id: number
@@ -19,25 +23,66 @@ interface GameBoardProps {
 }
 
 export function GameBoard({ addLog }: GameBoardProps) {
-  const [playerHand, setPlayerHand] = useState<Card[]>([
-    { id: 1, name: "Firewall", cost: 2, attack: 2, health: 3 },
-    { id: 2, name: "Debugger", cost: 3, attack: 3, health: 2 },
-    { id: 3, name: "Compiler", cost: 4, attack: 4, health: 4 },
-    { id: 4, name: "Parser", cost: 1, attack: 1, health: 2 },
-    { id: 5, name: "Kernel", cost: 5, attack: 5, health: 5 },
-  ])
+  const accounts = useAccounts()
+  // const [matchStatus, registerForMatch] = useRegisterForMatch(CONTRACT_ADDRESS)
+  const [turnStatus, submitTurnActions] = useSubmitTurnActions(CONTRACT_ADDRESS)
+  const [playerHand, setPlayerHand] = useState<Card[]>([])
   const [playerBoard, setPlayerBoard] = useState<(Card | null)[]>([null, null, null, null])
-  const [opponentBoard, setOpponentBoard] = useState<(Card | null)[]>([
-    { id: 101, name: "Bug", cost: 2, attack: 2, health: 2 },
-    { id: 102, name: "Virus", cost: 3, attack: 3, health: 1 },
-    null,
-    null,
-  ])
+  const [opponentBoard, setOpponentBoard] = useState<(Card | null)[]>([null, null, null, null])
   const [opponentHandCount, setOpponentHandCount] = useState(7)
   const [selectedCard, setSelectedCard] = useState<number | null>(null)
   const [mana, setMana] = useState(10)
   const [maxMana, setMaxMana] = useState(10)
   const [turn, setTurn] = useState(1)
+  const [pendingActions, setPendingActions] = useState<any[]>([])
+
+  // After GameStarted, fetch game_id then game_state to render board
+  const playerAddress = accounts[0]?.address ?? ""
+  const gameId = useGetPlayerGame(CONTRACT_ADDRESS, playerAddress)
+  const gameState = gameId ? useGetGameState(CONTRACT_ADDRESS, gameId) : null
+
+  useEffect(() => {
+    if (!gameState) return
+    // Map on-chain game state to local UI when connected for real
+    // addLog(`[GAME_STATE] ${JSON.stringify(gameState)}`)
+  }, [gameState])
+
+  // Mock game start: deal hands and optionally place an opponent card
+  useEffect(() => {
+    // Build a simple mock deck by repeating the config list
+    const deckPool = CARD_LIST
+    const pickRandomCards = (count: number, startId: number): Card[] => {
+      const res: Card[] = []
+      let nextId = startId
+      for (let i = 0; i < count; i++) {
+        const cfg = deckPool[Math.floor(Math.random() * deckPool.length)]
+        res.push({
+          id: nextId++,
+          name: cfg.name,
+          cost: cfg.cost,
+          attack: cfg.attack,
+          health: cfg.health,
+        })
+      }
+      return res
+    }
+
+    // Player draws 3 to start
+    setPlayerHand(pickRandomCards(3, 1))
+
+    // Opponent starts with 3 cards in hand and maybe 1 unit on board
+    setOpponentHandCount(3)
+    const maybeOpponentUnit = Math.random() < 0.5
+    if (maybeOpponentUnit) {
+      const [unit] = pickRandomCards(1, 10)
+      const slot = Math.floor(Math.random() * 4)
+      setOpponentBoard((prev) => {
+        const next = [...prev]
+        next[slot] = unit
+        return next
+      })
+    }
+  }, [])
 
   const handleCardSelect = (cardId: number) => {
     if (selectedCard === cardId) {
@@ -75,12 +120,18 @@ export function GameBoard({ addLog }: GameBoardProps) {
     setPlayerBoard(newBoard)
 
     // Remove from hand
-    setPlayerHand(playerHand.filter((c) => c.id !== selectedCard))
+    const handIndex = playerHand.findIndex((c) => c.id === selectedCard)
+    setPlayerHand(playerHand.filter((_, i) => i !== handIndex))
 
     // Deduct mana
     setMana(mana - card.cost)
 
     addLog(`Played ${card.name} to slot ${slotIndex + 1}`)
+    // Queue on-chain action in order
+    setPendingActions((prev) => [
+      ...prev,
+      { PlayCard: { hand_index: handIndex, slot_index: slotIndex } },
+    ])
     setSelectedCard(null)
   }
 
@@ -104,6 +155,11 @@ export function GameBoard({ addLog }: GameBoardProps) {
   }
 
   const handleEndTurn = () => {
+    // Submit ordered actions for this turn + EndTurn
+    const actionsToSubmit = [...pendingActions, "EndTurn"]
+    submitTurnActions(1, actionsToSubmit) // TODO: wire real gameId
+    addLog(`[ACTIONS_SUBMITTED] ${JSON.stringify(actionsToSubmit)}`)
+    setPendingActions([])
     setTurn(turn + 1)
     setMana(maxMana)
     addLog(`Turn ${turn + 1} started`)

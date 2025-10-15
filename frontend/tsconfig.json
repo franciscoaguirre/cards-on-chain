@@ -21,6 +21,7 @@
     ],
     "paths": {
       "@/*": ["./*"],
+      "@contract": ["lib/contract/index.ts"],
       "@contract/*": ["lib/contract/*"]
     }
   },

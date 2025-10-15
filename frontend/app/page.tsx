@@ -1,12 +1,39 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { PolkadotSigner } from "polkadot-api"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { useConnectedWallets, useWalletDisconnector, useAccounts, useSigner, SignerProvider, useWalletConnector } from "@reactive-dot/react"
+import { useConnectedWallets, useWalletDisconnector, useAccounts, useSigner, SignerProvider } from "@reactive-dot/react"
 import { ConnectionButton } from "dot-connect/react.js"
-import { useGameState } from "@/hooks/use-game-state"
+import { useRegisterForMatch } from "@contract"
+import { CONTRACT_ADDRESS } from "@/lib/contract/definition"
+import { checkStatus } from "@/lib/contract/helper"
+
+function PlayCTA({ onStarted }: { onStarted: () => void }) {
+  const [matchStatus, registerForMatch] = useRegisterForMatch(CONTRACT_ADDRESS)
+
+  useEffect(() => {
+    if (
+      typeof matchStatus !== "symbol" &&
+      !(matchStatus instanceof Error) &&
+      matchStatus.type === "finalized"
+    ) {
+      console.log('matchStatus finalized')
+    }
+    console.log('matchStatus effect', checkStatus(matchStatus))
+  }, [matchStatus])
+
+  const handleStart = () => {
+    const res = registerForMatch()
+    console.log('res', res)
+    onStarted()
+  }
+
+  return (
+    <Button onClick={handleStart} className="w-1/2">Find Opponent</Button>
+  )
+}
 
 export default function Home() {
   const router = useRouter()
@@ -15,11 +42,9 @@ export default function Home() {
   const currentSigner = useSigner()
   const [__, disconnectWallet] = useWalletDisconnector();
   const [selectedSigner, setSelectedSigner] = useState<PolkadotSigner | undefined>(undefined)
-
   const isConnected = useMemo(() => connectedWallets.length > 0, [connectedWallets])
   const needsAccountSelection = isConnected && accounts.length > 0 && !currentSigner && !selectedSigner
 
-  const { gameId, setGameId } = useGameState()
 
   const [isDisconnecting, setIsDisconnecting] = useState(false)
 
@@ -46,10 +71,8 @@ export default function Home() {
     }
   }
 
-  const handleStart = () => {
-    {/* fn create_game(&mut self, player_a: AccountId, player_b: AccountId) */ }
-    setGameId(Math.random().toString(36).substring(2, 15)) // local storage too? 
-    router.push("/game")
+  const handleStarted = () => {
+    router.push('/game')
   }
 
   return (
@@ -84,7 +107,7 @@ export default function Home() {
                 <Button variant="secondary" onClick={handleDisconnect} disabled={isDisconnecting} className="w-1/2">{isDisconnecting ? 'Disconnecting…' : 'Disconnect'}</Button>
                 {selectedSigner ? (
                   <SignerProvider signer={selectedSigner}>
-                    <Button onClick={handleStart} className="w-1/2">Start Game</Button>
+                    <PlayCTA onStarted={handleStarted} />
                   </SignerProvider>
                 ) : (
                   <Button disabled className="w-1/2">Select Account</Button>

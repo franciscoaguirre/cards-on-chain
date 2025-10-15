@@ -5,12 +5,26 @@ import { useRouter } from "next/navigation"
 import { useConnectedWallets } from "@reactive-dot/react"
 import { GameBoard } from "@/components/game-board"
 import { DebugLog } from "@/components/debug-log"
+import { useGameState } from "@/hooks/use-game-state"
+import { useGameStartedListener, CONTRACT_ADDRESS } from "@contract"
+
 
 export default function GameWaiting() {
     const router = useRouter()
     const wallets = useConnectedWallets()
     const [gameStarted, setGameStarted] = useState(false)
     const [logs, setLogs] = useState<string[]>([])
+    const { setGameId } = useGameState()
+    useGameStartedListener(
+        CONTRACT_ADDRESS,
+        true,
+        ({ gameId }) => {
+            // When the contract emits GameStarted, set id and go to the game
+            setGameId(String(gameId))
+            setGameStarted(true)
+            console.log('setting game id')
+        }
+    )
 
     useEffect(() => {
         if (wallets.length === 0) {
@@ -19,10 +33,11 @@ export default function GameWaiting() {
     }, [wallets, router])
 
     useEffect(() => {
-        const id = setTimeout(() => {
-            setGameStarted(true)
-        }, 3000)
-        return () => clearTimeout(id)
+
+        // const id = setTimeout(() => {
+        //     setGameStarted(true)
+        // }, 3000)
+        // return () => clearTimeout(id)
     }, [router])
 
     if (gameStarted) {
