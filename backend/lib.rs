@@ -1,101 +1,670 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
+use ink::prelude::{vec, vec::Vec};
+use scale::{Decode, Encode};
+
+pub type CardId = u32;
+pub type GameId = u32;
+pub type AccountId = ink::primitives::H160;
+
+#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+pub enum CardType {
+    Unit,
+    Spell,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+pub enum EffectType {
+    None = 0,
+    Taunt = 1,
+    Charge = 2,
+    HealSelf = 3,
+    DamageFront = 4,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+pub struct CardMetadata {
+    pub id: CardId,
+    pub name_hash: u32,
+    pub rarity: u8,
+    pub card_type: CardType,
+    pub cost: u8,
+    pub attack: u8,
+    pub health: u8,
+    pub effects: EffectType,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+pub struct UnitInstance {
+    pub card_id: CardId,
+    pub current_hp: i16,
+    pub acted_this_turn: bool,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+pub struct PlayerState {
+    pub addr: AccountId,
+    pub hp: i16,
+    pub energy: u8,
+    pub max_energy: u8,
+    pub deck: Vec<CardId>,
+    pub hand: Vec<CardId>,
+    pub board: [Option<UnitInstance>; 4],
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+pub enum GameStatus {
+    WaitingForPlayers,
+    InProgress,
+    Finished,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+pub struct Game {
+    pub id: GameId,
+    pub players: [PlayerState; 2],
+    pub active_idx: u8,
+    pub turn: u32,
+    pub status: GameStatus,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Encode, Decode)]
+#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+pub enum ActionType {
+    PlayCard { hand_index: u8, slot_index: u8 },
+    UseSpell { hand_index: u8, target_slot: u8 },
+    EndTurn,
+    Concede,
+}
+
 #[ink::contract]
 mod cards_on_chain {
-    /// Defines the storage of your contract.
-    /// Add new fields to the below struct in order
-    /// to add new static storage fields to your contract.
+    use super::*;
+    use ink::storage::Mapping;
+
     #[ink(storage)]
     pub struct CardsOnChain {
-        /// Stores a single `bool` value on the storage.
-        value: bool,
+        // Card NFT storage
+        cards: Mapping<CardId, CardMetadata>,
+        card_owners: Mapping<CardId, AccountId>,
+        next_card_id: CardId,
+        
+        // Game storage
+        games: Mapping<GameId, Game>,
+        next_game_id: GameId,
+        waiting_player: Option<AccountId>,
+        player_active_game: Mapping<AccountId, GameId>,
     }
+
+    #[ink(event)]
+    pub struct CardMinted {
+        #[ink(topic)]
+        card_id: CardId,
+        #[ink(topic)]
+        owner: AccountId,
+        metadata: CardMetadata,
+    }
+
+    #[ink(event)]
+    pub struct GameStarted {
+        #[ink(topic)]
+        game_id: GameId,
+        #[ink(topic)]
+        player_a: AccountId,
+        #[ink(topic)]
+        player_b: AccountId,
+    }
+
+    #[ink(event)]
+    pub struct ActionExecuted {
+        #[ink(topic)]
+        game_id: GameId,
+        #[ink(topic)]
+        player: AccountId,
+        action: ActionType,
+    }
+
+    #[ink(event)]
+    pub struct TurnEnded {
+        #[ink(topic)]
+        game_id: GameId,
+        new_active_player: AccountId,
+        turn: u32,
+    }
+
+    #[ink(event)]
+    pub struct GameEnded {
+        #[ink(topic)]
+        game_id: GameId,
+        #[ink(topic)]
+        winner: AccountId,
+    }
+
+    #[derive(Debug, PartialEq, Eq, Encode, Decode)]
+    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+    pub enum Error {
+        GameNotFound,
+        NotYourTurn,
+        InvalidAction,
+        NotEnoughEnergy,
+        SlotOccupied,
+        InvalidSlot,
+        InvalidHandIndex,
+        GameAlreadyFinished,
+        AlreadyInGame,
+    }
+
+    pub type Result<T> = core::result::Result<T, Error>;
 
     impl CardsOnChain {
-        /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
-        pub fn new(init_value: bool) -> Self {
-            Self { value: init_value }
+        pub fn new() -> Self {
+            let mut contract = Self {
+                cards: Mapping::default(),
+                card_owners: Mapping::default(),
+                next_card_id: 1,
+                games: Mapping::default(),
+                next_game_id: 1,
+                waiting_player: None,
+                player_active_game: Mapping::default(),
+            };
+            
+            // Mint some default cards for testing
+            contract.mint_default_cards();
+            contract
         }
 
-        /// A message that can be called on instantiated contracts.
-        /// This one flips the value of the stored `bool` from `true`
-        /// to `false` and vice versa.
-        #[ink(message)]
-        pub fn flip(&mut self) {
-            self.value = !self.value;
+        fn mint_default_cards(&mut self) {
+            let default_cards = vec![
+                CardMetadata {
+                    id: 1,
+                    name_hash: 0x1234,
+                    rarity: 1,
+                    card_type: CardType::Unit,
+                    cost: 1,
+                    attack: 1,
+                    health: 1,
+                    effects: EffectType::None,
+                },
+                CardMetadata {
+                    id: 2,
+                    name_hash: 0x5678,
+                    rarity: 1,
+                    card_type: CardType::Unit,
+                    cost: 2,
+                    attack: 2,
+                    health: 2,
+                    effects: EffectType::None,
+                },
+                CardMetadata {
+                    id: 3,
+                    name_hash: 0x9abc,
+                    rarity: 2,
+                    card_type: CardType::Unit,
+                    cost: 3,
+                    attack: 3,
+                    health: 3,
+                    effects: EffectType::Charge,
+                },
+            ];
+
+            for card in default_cards {
+                self.cards.insert(card.id, &card);
+                self.next_card_id = card.id + 1;
+            }
         }
 
-        /// Simply returns the current value of our `bool`.
         #[ink(message)]
-        pub fn get(&self) -> bool {
-            self.value
+        pub fn mint_card(&mut self, to: AccountId, metadata: CardMetadata) -> CardId {
+            let card_id = self.next_card_id;
+            let mut card_metadata = metadata;
+            card_metadata.id = card_id;
+            
+            self.cards.insert(card_id, &card_metadata);
+            self.card_owners.insert(card_id, &to);
+            self.next_card_id += 1;
+
+            self.env().emit_event(CardMinted {
+                card_id,
+                owner: to,
+                metadata: card_metadata,
+            });
+
+            card_id
+        }
+
+        #[ink(message)]
+        pub fn get_card(&self, card_id: CardId) -> Option<CardMetadata> {
+            self.cards.get(card_id)
+        }
+
+        #[ink(message)]
+        pub fn register_for_match(&mut self) -> Result<GameId> {
+            let caller = self.env().caller();
+            
+            // Check if player is already in a game
+            if self.player_active_game.contains(&caller) {
+                return Err(Error::AlreadyInGame);
+            }
+
+            if let Some(waiting) = self.waiting_player {
+                if waiting == caller {
+                    return Err(Error::AlreadyInGame);
+                }
+                
+                // Create new game
+                let game_id = self.create_game(waiting, caller)?;
+                self.waiting_player = None;
+                Ok(game_id)
+            } else {
+                self.waiting_player = Some(caller);
+                Ok(0) // Return 0 to indicate waiting
+            }
+        }
+
+        fn create_game(&mut self, player_a: AccountId, player_b: AccountId) -> Result<GameId> {
+            let game_id = self.next_game_id;
+            
+            // Create default deck for each player
+            let default_deck = vec![1, 2, 3, 1, 2, 3, 1, 2, 3, 1]; // 10 cards for demo
+
+            let mut game = Game {
+                id: game_id,
+                players: [
+                    PlayerState {
+                        addr: player_a,
+                        hp: 20,
+                        energy: 1,
+                        max_energy: 1,
+                        deck: default_deck.clone(),
+                        hand: Vec::new(),
+                        board: [None, None, None, None],
+                    },
+                    PlayerState {
+                        addr: player_b,
+                        hp: 20,
+                        energy: 0,
+                        max_energy: 1,
+                        deck: default_deck,
+                        hand: Vec::new(),
+                        board: [None, None, None, None],
+                    },
+                ],
+                active_idx: 0,
+                turn: 1,
+                status: GameStatus::InProgress,
+            };
+
+            // Draw initial hands (3 cards each)
+            for player_idx in 0..2 {
+                for _ in 0..3 {
+                    self.draw_card(&mut game, player_idx);
+                }
+            }
+
+            self.games.insert(game_id, &game);
+            self.player_active_game.insert(&player_a, &game_id);
+            self.player_active_game.insert(&player_b, &game_id);
+            self.next_game_id += 1;
+
+            self.env().emit_event(GameStarted {
+                game_id,
+                player_a,
+                player_b,
+            });
+
+            Ok(game_id)
+        }
+
+        fn draw_card(&self, game: &mut Game, player_idx: usize) {
+            if !game.players[player_idx].deck.is_empty() && game.players[player_idx].hand.len() < 7 {
+                // Simple deterministic draw using block number
+                let block_number = self.env().block_number();
+                let draw_index = (block_number as usize + game.turn as usize) % game.players[player_idx].deck.len();
+                let card_id = game.players[player_idx].deck.remove(draw_index);
+                game.players[player_idx].hand.push(card_id);
+            }
+        }
+
+        #[ink(message)]
+        pub fn submit_turn_actions(&mut self, game_id: GameId, actions: Vec<ActionType>) -> Result<()> {
+            let caller = self.env().caller();
+            let mut game = self.games.get(game_id).ok_or(Error::GameNotFound)?;
+            
+            if game.status == GameStatus::Finished {
+                return Err(Error::GameAlreadyFinished);
+            }
+
+            let active_player = &game.players[game.active_idx as usize];
+            if active_player.addr != caller {
+                return Err(Error::NotYourTurn);
+            }
+
+            // Execute actions in sequence
+            for action in &actions {
+                self.execute_action(&mut game, action.clone())?;
+                
+                self.env().emit_event(ActionExecuted {
+                    game_id,
+                    player: caller,
+                    action: action.clone(),
+                });
+            }
+
+            // Check if turn ended
+            if actions.iter().any(|a| matches!(a, ActionType::EndTurn)) {
+                self.end_turn(&mut game)?;
+            }
+
+            self.games.insert(game_id, &game);
+            Ok(())
+        }
+
+        fn execute_action(&self, game: &mut Game, action: ActionType) -> Result<()> {
+            let active_idx = game.active_idx as usize;
+            
+            match action {
+                ActionType::PlayCard { hand_index, slot_index } => {
+                    if hand_index as usize >= game.players[active_idx].hand.len() {
+                        return Err(Error::InvalidHandIndex);
+                    }
+                    if slot_index >= 4 {
+                        return Err(Error::InvalidSlot);
+                    }
+                    if game.players[active_idx].board[slot_index as usize].is_some() {
+                        return Err(Error::SlotOccupied);
+                    }
+
+                    let card_id = game.players[active_idx].hand[hand_index as usize];
+                    
+                    // Get card metadata (in real implementation, we'd query the card contract)
+                    let card_cost = match card_id {
+                        1 => 1,
+                        2 => 2,
+                        3 => 3,
+                        _ => 1,
+                    };
+
+                    if game.players[active_idx].energy < card_cost {
+                        return Err(Error::NotEnoughEnergy);
+                    }
+
+                    // Play the card
+                    game.players[active_idx].energy -= card_cost;
+                    game.players[active_idx].hand.remove(hand_index as usize);
+                    
+                    let (_attack, health) = match card_id {
+                        1 => (1, 1),
+                        2 => (2, 2),
+                        3 => (3, 3),
+                        _ => (1, 1),
+                    };
+
+                    game.players[active_idx].board[slot_index as usize] = Some(UnitInstance {
+                        card_id,
+                        current_hp: health,
+                        acted_this_turn: false,
+                    });
+                },
+                ActionType::UseSpell { hand_index: _, target_slot: _ } => {
+                    // Spell implementation would go here
+                    return Err(Error::InvalidAction);
+                },
+                ActionType::EndTurn => {
+                    // This is handled in submit_turn_actions
+                },
+                ActionType::Concede => {
+                    game.status = GameStatus::Finished;
+                    let opponent_idx = 1 - active_idx;
+                    
+                    self.env().emit_event(GameEnded {
+                        game_id: game.id,
+                        winner: game.players[opponent_idx].addr,
+                    });
+                },
+            }
+            
+            Ok(())
+        }
+
+        fn end_turn(&mut self, game: &mut Game) -> Result<()> {
+            let active_idx = game.active_idx as usize;
+            let opponent_idx = 1 - active_idx;
+
+            // Combat phase: units attack forward
+            // Collect damage to apply after calculating all attacks
+            let mut damage_to_units: Vec<(usize, usize, i16)> = Vec::new(); // (player_idx, slot, damage)
+            let mut damage_to_players: Vec<(usize, i16)> = Vec::new(); // (player_idx, damage)
+
+            for slot in 0..4 {
+                if let Some(attacker) = &game.players[active_idx].board[slot] {
+                    let attack_power = match attacker.card_id {
+                        1 => 1,
+                        2 => 2,
+                        3 => 3,
+                        _ => 1,
+                    };
+
+                    if let Some(defender) = &game.players[opponent_idx].board[slot] {
+                        // Unit vs unit combat
+                        let defender_attack = match defender.card_id {
+                            1 => 1,
+                            2 => 2,
+                            3 => 3,
+                            _ => 1,
+                        };
+
+                        damage_to_units.push((active_idx, slot, defender_attack));
+                        damage_to_units.push((opponent_idx, slot, attack_power));
+                    } else {
+                        // Attack player directly
+                        damage_to_players.push((opponent_idx, attack_power));
+                    }
+                }
+            }
+
+            // Apply damage to units
+            for (player_idx, slot, damage) in damage_to_units {
+                if let Some(unit) = &mut game.players[player_idx].board[slot] {
+                    unit.current_hp -= damage;
+                }
+            }
+
+            // Apply damage to players
+            for (player_idx, damage) in damage_to_players {
+                game.players[player_idx].hp -= damage;
+            }
+
+            // Remove dead units
+            for player_idx in 0..2 {
+                for slot in 0..4 {
+                    if let Some(ref unit) = game.players[player_idx].board[slot] {
+                        if unit.current_hp <= 0 {
+                            game.players[player_idx].board[slot] = None;
+                        }
+                    }
+                }
+            }
+
+            // Check for game end
+            if game.players[0].hp <= 0 {
+                game.status = GameStatus::Finished;
+                self.env().emit_event(GameEnded {
+                    game_id: game.id,
+                    winner: game.players[1].addr,
+                });
+                return Ok(());
+            } else if game.players[1].hp <= 0 {
+                game.status = GameStatus::Finished;
+                self.env().emit_event(GameEnded {
+                    game_id: game.id,
+                    winner: game.players[0].addr,
+                });
+                return Ok(());
+            }
+
+            // Switch active player
+            game.active_idx = 1 - game.active_idx;
+            game.turn += 1;
+
+            let new_active_idx = game.active_idx as usize;
+            
+            // Increase max energy and refresh energy
+            if game.players[new_active_idx].max_energy < 10 {
+                game.players[new_active_idx].max_energy += 1;
+            }
+            game.players[new_active_idx].energy = game.players[new_active_idx].max_energy;
+
+            // Draw a card
+            self.draw_card(game, new_active_idx);
+
+            // Reset unit action flags
+            for unit in &mut game.players[new_active_idx].board {
+                if let Some(u) = unit {
+                    u.acted_this_turn = false;
+                }
+            }
+
+            self.env().emit_event(TurnEnded {
+                game_id: game.id,
+                new_active_player: game.players[new_active_idx].addr,
+                turn: game.turn,
+            });
+
+            Ok(())
+        }
+
+        #[ink(message)]
+        pub fn get_game_state(&self, game_id: GameId) -> Option<Game> {
+            self.games.get(game_id)
+        }
+
+        #[ink(message)]
+        pub fn get_player_game(&self, player: AccountId) -> Option<GameId> {
+            self.player_active_game.get(player)
         }
     }
 
-    /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
-    /// module and test functions are marked with a `#[test]` attribute.
-    /// The below code is technically just normal Rust code.
     #[cfg(test)]
     mod tests {
-        /// Imports all the definitions from the outer scope so we can use them here.
         use super::*;
 
-        /// We test a simple use case of our contract.
         #[ink::test]
-        fn it_works() {
-            let mut cards_on_chain = CardsOnChain::new(false);
-            assert_eq!(cards_on_chain.get(), false);
-            cards_on_chain.flip();
-            assert_eq!(cards_on_chain.get(), true);
+        fn constructor_works() {
+            let contract = CardsOnChain::new();
+            assert_eq!(contract.next_card_id, 4); // 3 default cards + 1
+        }
+
+        #[ink::test]
+        fn mint_card_works() {
+            let mut contract = CardsOnChain::new();
+            let account = AccountId::from([0x1; 32]);
+            
+            let metadata = CardMetadata {
+                id: 0, // Will be overwritten
+                name_hash: 0xabcd,
+                rarity: 3,
+                card_type: CardType::Unit,
+                cost: 4,
+                attack: 4,
+                health: 5,
+                effects: EffectType::Taunt,
+            };
+
+            let card_id = contract.mint_card(account, metadata.clone());
+            assert_eq!(card_id, 4);
+            
+            let stored_card = contract.get_card(card_id).unwrap();
+            assert_eq!(stored_card.cost, 4);
+            assert_eq!(stored_card.attack, 4);
+            assert_eq!(stored_card.health, 5);
+        }
+
+        #[ink::test]
+        fn matchmaking_works() {
+            let mut contract = CardsOnChain::new();
+            let alice = AccountId::from([0x1; 32]);
+            let bob = AccountId::from([0x2; 32]);
+
+            // Set the contract caller to alice for the first registration
+            ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
+            let result1 = contract.register_for_match().unwrap();
+            assert_eq!(result1, 0); // Alice is waiting
+
+            // Set the contract caller to bob for the second registration
+            ink::env::test::set_caller::<ink::env::DefaultEnvironment>(bob);
+            let game_id = contract.register_for_match().unwrap();
+            assert_eq!(game_id, 1); // Game created
+
+            let game = contract.get_game_state(game_id).unwrap();
+            assert_eq!(game.players[0].addr, alice);
+            assert_eq!(game.players[1].addr, bob);
+            assert_eq!(game.status, GameStatus::InProgress);
         }
     }
 
-
-    /// This is how you'd write end-to-end (E2E) or integration tests for ink! contracts.
-    ///
-    /// When running these you need to make sure that you:
-    /// - Compile the tests with the `e2e-tests` feature flag enabled (`--features e2e-tests`)
-    /// - Are running a Substrate node which contains `pallet-contracts` in the background
     #[cfg(all(test, feature = "e2e-tests"))]
     mod e2e_tests {
-        /// Imports all the definitions from the outer scope so we can use them here.
         use super::*;
-
-        /// A helper function used for calling contract messages.
         use ink_e2e::ContractsBackend;
 
-        /// The End-to-End test `Result` type.
         type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-        /// We test that we can read and write a value from the on-chain contract.
         #[ink_e2e::test]
-        async fn it_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
-            // Given
-            let mut constructor = CardsOnChainRef::new(false);
+        async fn e2e_mint_and_get_card(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            let mut constructor = CardsOnChainRef::new();
             let contract = client
-                .instantiate("cards_on_chain", &ink_e2e::bob(), &mut constructor)
+                .instantiate("cards_on_chain", &ink_e2e::alice(), &mut constructor)
                 .submit()
                 .await
                 .expect("instantiate failed");
             let mut call_builder = contract.call_builder::<CardsOnChain>();
 
-            let get = call_builder.get();
-            let get_result = client.call(&ink_e2e::bob(), &get).dry_run().await?;
-            assert!(matches!(get_result.return_value(), false));
+            // Test getting a default card
+            let get_card = call_builder.get_card(1);
+            let get_result = client.call(&ink_e2e::alice(), &get_card).dry_run().await?;
+            assert!(get_result.return_value().is_some());
 
-            // When
-            let flip = call_builder.flip();
-            let _flip_result = client
-                .call(&ink_e2e::bob(), &flip)
+            Ok(())
+        }
+
+        #[ink_e2e::test]
+        async fn e2e_full_game_flow(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            let mut constructor = CardsOnChainRef::new();
+            let contract = client
+                .instantiate("cards_on_chain", &ink_e2e::alice(), &mut constructor)
                 .submit()
                 .await
-                .expect("flip failed");
+                .expect("instantiate failed");
+            let mut call_builder = contract.call_builder::<CardsOnChain>();
 
-            // Then
-            let get = call_builder.get();
-            let get_result = client.call(&ink_e2e::bob(), &get).dry_run().await?;
-            assert!(matches!(get_result.return_value(), true));
+            // Alice registers for match
+            let register_alice = call_builder.register_for_match();
+            let _result = client
+                .call(&ink_e2e::alice(), &register_alice)
+                .submit()
+                .await
+                .expect("alice register failed");
+
+            // Bob registers for match (should create game)
+            let register_bob = call_builder.register_for_match();
+            let result = client
+                .call(&ink_e2e::bob(), &register_bob)
+                .submit()
+                .await
+                .expect("bob register failed");
+
+            // Get game state
+            let get_game = call_builder.get_game_state(1);
+            let game_result = client.call(&ink_e2e::alice(), &get_game).dry_run().await?;
+            assert!(game_result.return_value().is_some());
 
             Ok(())
         }
