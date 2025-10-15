@@ -1,7 +1,14 @@
-import { useLazyLoadQuery, useContractMutation } from "@reactive-dot/react";
+import {
+  useLazyLoadQuery,
+  useContractMutation,
+  useClient,
+  useSigner,
+} from "@reactive-dot/react";
 import { useEffect, useState } from "react";
 import type { CardId, CardMetadata, Game, GameId } from "./types";
 import { cardsOnChain } from "./definition";
+import { getContract } from "./helper";
+import { AccountId, PolkadotClient, SS58String } from "polkadot-api";
 
 // Reads
 export function useGetCard(contractAddress: string, cardId: CardId) {
@@ -41,17 +48,11 @@ export function useGetPlayerGame(contractAddress: string, player: string) {
 }
 
 // Writes
-export function useRegisterForMatch(
-  contractAddress: string,
-  value: bigint = 0n,
-) {
-  const [status, rawMutate] = useContractMutation((mutate) => {
-    return mutate(cardsOnChain, contractAddress, "register_for_match", {
-      value,
-    });
+export function useRegisterForMatch(client: PolkadotClient, addr: SS58String) {
+  const contract = getContract(client);
+  return contract.send("register_for_match", {
+    origin: addr,
   });
-  const register = () => rawMutate();
-  return [status, register] as const;
 }
 
 export function useSubmitTurnActions(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { PolkadotSigner } from "polkadot-api";
+import { AccountId, type PolkadotSigner } from "polkadot-api";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,30 +10,22 @@ import {
   useAccounts,
   useSigner,
   SignerProvider,
+  useClient,
 } from "@reactive-dot/react";
 import { ConnectionButton } from "dot-connect/react.js";
 import { useRegisterForMatch } from "@contract";
-import { CONTRACT_ADDRESS } from "@/lib/contract/definition";
-import { checkStatus } from "@/lib/contract/helper";
 
 function PlayCTA({ onStarted }: { onStarted: () => void }) {
-  const [matchStatus, registerForMatch] = useRegisterForMatch(CONTRACT_ADDRESS);
-
-  useEffect(() => {
-    if (
-      typeof matchStatus !== "symbol" &&
-      !(matchStatus instanceof Error) &&
-      matchStatus.type === "finalized"
-    ) {
-      console.log("matchStatus finalized");
-    }
-    console.log("matchStatus effect", checkStatus(matchStatus));
-  }, [matchStatus]);
-
+  const client = useClient();
+  const signer = useSigner();
+  if (!signer || !client) throw new Error("KAKAROTO");
   const handleStart = () => {
-    const res = registerForMatch();
-    console.log("res", res);
-    onStarted();
+    useRegisterForMatch(client, AccountId().dec(signer.publicKey))
+      .signSubmitAndWatch(signer)
+      .subscribe((ev) => {
+        console.log(ev);
+        if (ev.type === "finalized") onStarted();
+      });
   };
 
   return (
