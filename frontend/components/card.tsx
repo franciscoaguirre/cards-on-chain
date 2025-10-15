@@ -1,22 +1,27 @@
-"use client"
+"use client";
 
-import { CARDS } from "@/lib/cards"
+import { CARDS } from "@/lib/cards";
 
 interface CardProps {
   card: {
-    id: number
-    name: string
-    cost: number
-    attack: number
-    health: number
-  }
-  isSelected?: boolean
-  onClick?: () => void
-  canAfford?: boolean
+    id: number;
+    name: string;
+    cost: number;
+    attack: number;
+    health: number;
+  };
+  isSelected?: boolean;
+  onClick?: () => void;
+  canAfford?: boolean;
 }
 
-export function Card({ card, isSelected, onClick, canAfford = true }: CardProps) {
-  const image = CARDS[card.name as keyof typeof CARDS]?.image
+export function Card({
+  card,
+  isSelected,
+  onClick,
+  canAfford = true,
+}: CardProps) {
+  const image = CARDS[card.name as keyof typeof CARDS]?.image;
   return (
     <button
       onClick={onClick}
@@ -34,13 +39,19 @@ export function Card({ card, isSelected, onClick, canAfford = true }: CardProps)
       </div>
 
       {/* Name */}
-      <div className="text-[10px] font-bold leading-tight text-center break-words">{card.name}</div>
+      <div className="text-[10px] font-bold leading-tight text-center break-words">
+        {card.name}
+      </div>
 
       {/* Card Art */}
       <div className="flex-1 border border-current/30 bg-muted/20 flex items-center justify-center my-1 overflow-hidden">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt={card.name} className="object-contain w-full h-full" />
+          <img
+            src={image}
+            alt={card.name}
+            className="object-contain w-full h-full"
+          />
         ) : (
           <div className="text-[8px] text-muted-foreground">IMG</div>
         )}
@@ -52,5 +63,5 @@ export function Card({ card, isSelected, onClick, canAfford = true }: CardProps)
         <span className="text-primary">{card.health}</span>
       </div>
     </button>
-  )
+  );
 }

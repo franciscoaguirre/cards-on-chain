@@ -1,6 +1,6 @@
 interface ManaDisplayProps {
-  current: number
-  max: number
+  current: number;
+  max: number;
 }
 
 export function ManaDisplay({ current, max }: ManaDisplayProps) {
@@ -22,5 +22,5 @@ export function ManaDisplay({ current, max }: ManaDisplayProps) {
         {current}/{max}
       </span>
     </div>
-  )
+  );
 }

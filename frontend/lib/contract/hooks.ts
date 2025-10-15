@@ -43,7 +43,7 @@ export function useGetPlayerGame(contractAddress: string, player: string) {
 // Writes
 export function useRegisterForMatch(
   contractAddress: string,
-  value: bigint = 0n
+  value: bigint = 0n,
 ) {
   const [status, rawMutate] = useContractMutation((mutate) => {
     return mutate(cardsOnChain, contractAddress, "register_for_match", {
@@ -56,7 +56,7 @@ export function useRegisterForMatch(
 
 export function useSubmitTurnActions(
   contractAddress: string,
-  value: bigint = 0n
+  value: bigint = 0n,
 ) {
   const submit = (gameId: number, actions: any[]) => {
     console.log("[stub] submit_turn_actions", {
@@ -94,7 +94,7 @@ export function useMintCard(contractAddress: string, value: bigint = 0n) {
 export function useGameStartedListener(
   contractAddress: string,
   enabled: boolean,
-  onGameStarted: (payload: { gameId: number }) => void
+  onGameStarted: (payload: { gameId: number }) => void,
 ) {
   useEffect(() => {
     if (!enabled) return;
