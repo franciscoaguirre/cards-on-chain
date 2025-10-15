@@ -11,6 +11,7 @@ export type CardKey =
   | "Degen";
 
 export interface CardConfig {
+  id: number;
   key: CardKey;
   name: string;
   cost: number;
@@ -23,6 +24,7 @@ export interface CardConfig {
 
 export const CARDS: Record<CardKey, CardConfig> = {
   Hacker: {
+    id: 1,
     key: "Hacker",
     name: "Hacker",
     cost: 3,
@@ -34,6 +36,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     image: "/cards/Hacker.svg",
   },
   "Head Hunter": {
+    id: 2,
     key: "Head Hunter",
     name: "Head Hunter",
     cost: 4,
@@ -44,6 +47,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     image: "/cards/HeadHunter.svg",
   },
   Manager: {
+    id: 3,
     key: "Manager",
     name: "Manager",
     cost: 5,
@@ -53,6 +57,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     image: "/cards/Puffer.svg", // temporary image until Manager asset exists
   },
   "Vibe Coder": {
+    id: 4,
     key: "Vibe Coder",
     name: "Vibe Coder",
     cost: 1,
@@ -64,6 +69,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     image: "/cards/VibeCoder.svg",
   },
   "Twitter drama queen": {
+    id: 5,
     key: "Twitter drama queen",
     name: "Twitter drama queen",
     cost: 2,
@@ -73,6 +79,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     image: "/cards/TwitterDramaQueen.svg",
   },
   "The Yapper": {
+    id: 6,
     key: "The Yapper",
     name: "The Yapper",
     cost: 1,
@@ -84,6 +91,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     image: "/cards/Yapper.svg",
   },
   "Code purist": {
+    id: 7,
     key: "Code purist",
     name: "Code purist",
     cost: 3,
@@ -93,6 +101,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     image: "/cards/CodePurist.svg",
   },
   Degen: {
+    id: 8,
     key: "Degen",
     name: "Degen",
     cost: 0,

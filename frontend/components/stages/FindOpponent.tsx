@@ -14,15 +14,18 @@ export function FindOpponent({ signer, onGameStarted }: FindOpponentProps) {
 
   const handleFindOpponent = async () => {
     try {
-      await registerForMatch(signer);
-      setIsWaitingForOpponent(true);
+      const result = await registerForMatch(signer);
       
-      // TODO: Listen for GameStarted events from the contract instead of auto-starting
-      // Need to implement event listening to detect when another player joins
-      // For now, simulate finding an opponent after a delay
-      setTimeout(() => {
-        onGameStarted(1); // Mock game ID
-      }, 3000);
+      if (result) {
+        setIsWaitingForOpponent(true);
+        
+        // TODO: Listen for GameStarted events from the contract instead of auto-starting
+        // Need to implement event listening to detect when another player joins
+        // For now, simulate finding an opponent after a delay
+        setTimeout(() => {
+          onGameStarted(1); // Mock game ID
+        }, 3000);
+      }
     } catch (err) {
       console.error("Failed to register for match:", err);
     }

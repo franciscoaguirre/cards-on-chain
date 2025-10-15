@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card as GameCard } from "@/components/card";
 import { BoardSlot } from "@/components/board-slot";
 import { ManaDisplay } from "@/components/mana-display";
@@ -10,6 +10,7 @@ import {
 } from "@/lib/contract/hooks";
 import { CARD_LIST } from "@/lib/cards";
 import type { PolkadotSigner } from "polkadot-api";
+import type { Game } from "@/lib/contract/types";
 
 interface Card {
   id: number;
@@ -22,10 +23,11 @@ interface Card {
 interface GameBoardProps {
   signer: PolkadotSigner;
   gameId: number;
+  gameState?: Game;
   addLog: (message: string) => void;
 }
 
-export function GameBoard({ signer, gameId, addLog }: GameBoardProps) {
+export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps) {
   const { execute: submitTurnActions, loading: turnLoading, error: turnError } = useSubmitTurnActions();
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [playerBoard, setPlayerBoard] = useState<(Card | null)[]>([
@@ -42,58 +44,106 @@ export function GameBoard({ signer, gameId, addLog }: GameBoardProps) {
   ]);
   const [opponentHandCount, setOpponentHandCount] = useState(7);
   const [selectedCard, setSelectedCard] = useState<number | null>(null);
-  const [energy, setEnergy] = useState(10);
-  const [maxEnergy, setMaxEnergy] = useState(10);
+  const [energy, setEnergy] = useState(1);
+  const [maxEnergy, setMaxEnergy] = useState(1);
   const [turn, setTurn] = useState(1);
   const [pendingActions, setPendingActions] = useState<any[]>([]);
 
-  // TODO: Fetch and update game state periodically
-  // const { execute: getGameState } = useGetGameState();
-  // useEffect(() => {
-  //   const fetchGameState = async () => {
-  //     const state = await getGameState(gameId);
-  //     // Map on-chain game state to local UI
-  //     addLog(`[GAME_STATE] ${JSON.stringify(state)}`);
-  //   };
-  //   fetchGameState();
-  // }, [gameId]);
-
-  // Mock game start: deal hands and optionally place an opponent card
+  // Initialize game state from props if provided (for resumed games)
   useEffect(() => {
-    // Build a simple mock deck by repeating the config list
-    const deckPool = CARD_LIST;
-    const pickRandomCards = (count: number, startId: number): Card[] => {
-      const res: Card[] = [];
-      let nextId = startId;
-      for (let i = 0; i < count; i++) {
-        const cfg = deckPool[Math.floor(Math.random() * deckPool.length)];
-        res.push({
-          id: nextId++,
-          name: cfg.name,
-          cost: cfg.cost,
-          attack: cfg.attack,
-          health: cfg.health,
-        });
-      }
-      return res;
-    };
-
-    // Player draws 3 to start
-    setPlayerHand(pickRandomCards(3, 1));
-
-    // Opponent starts with 3 cards in hand and maybe 1 unit on board
-    setOpponentHandCount(3);
-    const maybeOpponentUnit = Math.random() < 0.5;
-    if (maybeOpponentUnit) {
-      const [unit] = pickRandomCards(1, 10);
-      const slot = Math.floor(Math.random() * 4);
-      setOpponentBoard((prev) => {
-        const next = [...prev];
-        next[slot] = unit;
-        return next;
+    if (gameState) {
+      console.log("Contract game state:", gameState);
+      
+      // TODO: Determine which player index is the current signer
+      // For now, assume player 0 is the current player
+      const currentPlayerIndex = 0;
+      const currentPlayer = gameState.players[currentPlayerIndex];
+      const opponent = gameState.players[1 - currentPlayerIndex];
+      
+      // Determine whose turn it is using active_idx
+      const isCurrentPlayerTurn = gameState.active_idx === currentPlayerIndex;
+      const activePlayer = gameState.players[gameState.active_idx];
+      
+      // Set game state from contract
+      setTurn(gameState.turn);
+      setEnergy(activePlayer.energy);
+      setMaxEnergy(activePlayer.max_energy);
+      setOpponentHandCount(opponent.hand.length);
+      
+      // Map hand cards from CardId to actual card data
+      const playerHand = currentPlayer.hand.map((cardId) => {
+        const cardConfig = CARD_LIST.find(card => card.id === cardId);
+        return cardConfig ? {
+          id: cardId,
+          name: cardConfig.name,
+          cost: cardConfig.cost,
+          attack: cardConfig.attack,
+          health: cardConfig.health,
+        } : {
+          id: cardId,
+          name: `Unknown Card ${cardId}`,
+          cost: 1,
+          attack: 1,
+          health: 1,
+        };
       });
+      setPlayerHand(playerHand);
+      
+      // Map board state from contract using actual card data
+      const playerBoardState = currentPlayer.board.map(unit => {
+        if (!unit) return null;
+        const cardConfig = CARD_LIST.find(card => card.id === unit.card_id);
+        return cardConfig ? {
+          id: unit.card_id,
+          name: cardConfig.name,
+          cost: cardConfig.cost,
+          attack: cardConfig.attack,
+          health: unit.current_hp, // Use current HP from game state
+        } : {
+          id: unit.card_id,
+          name: `Unknown Unit ${unit.card_id}`,
+          cost: 1,
+          attack: 1,
+          health: unit.current_hp,
+        };
+      });
+      setPlayerBoard(playerBoardState);
+      
+      const opponentBoardState = opponent.board.map(unit => {
+        if (!unit) return null;
+        const cardConfig = CARD_LIST.find(card => card.id === unit.card_id);
+        return cardConfig ? {
+          id: unit.card_id,
+          name: cardConfig.name,
+          cost: cardConfig.cost,
+          attack: cardConfig.attack,
+          health: unit.current_hp, // Use current HP from game state
+        } : {
+          id: unit.card_id,
+          name: `Unknown Unit ${unit.card_id}`,
+          cost: 1,
+          attack: 1,
+          health: unit.current_hp,
+        };
+      });
+      setOpponentBoard(opponentBoardState);
+      
+      addLog(`Game resumed: Turn ${gameState.turn}, Energy ${activePlayer.energy}/${activePlayer.max_energy}`);
+      addLog(`${isCurrentPlayerTurn ? "Your turn" : "Opponent's turn"}`);
     }
-  }, []);
+  }, [gameState, addLog]);
+
+  // Initialize game for new games (when no gameState is provided)
+  useEffect(() => {
+    if (!gameState) {
+      // For new games, start with empty boards and no cards
+      setPlayerHand([]);
+      setPlayerBoard([null, null, null, null]);
+      setOpponentBoard([null, null, null, null]);
+      setOpponentHandCount(0);
+      addLog("New game started - boards are empty");
+    }
+  }, [gameState, addLog]);
 
   const handleCardSelect = (cardId: number) => {
     if (selectedCard === cardId) {
@@ -169,13 +219,15 @@ export function GameBoard({ signer, gameId, addLog }: GameBoardProps) {
     // Submit ordered actions for this turn + EndTurn
     const actionsToSubmit = [...pendingActions, "EndTurn"];
     try {
-      await submitTurnActions(signer, gameId, actionsToSubmit);
-      addLog(`[ACTIONS_SUBMITTED] ${JSON.stringify(actionsToSubmit)}`);
-      setPendingActions([]);
-      setTurn(turn + 1);
-      setEnergy(maxEnergy);
-      addLog(`Turn ${turn + 1} started`);
-      addLog("Energy refreshed");
+      const result = await submitTurnActions(signer, gameId, actionsToSubmit);
+      
+      if (result) {
+        setPendingActions([]);
+        setTurn(turn + 1);
+        setEnergy(maxEnergy);
+        addLog(`Turn ${turn + 1} started`);
+        addLog("Energy refreshed");
+      }
     } catch (error) {
       addLog(`[ERROR] Failed to submit turn: ${error}`);
     }
