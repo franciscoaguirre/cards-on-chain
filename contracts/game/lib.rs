@@ -1,96 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
 use ink::Address;
-use ink::prelude::{vec, vec::Vec};
-use scale::{Decode, Encode};
+use shared::{
+    CardId, GameId, CardMetadata, CardType, EffectType, CardDataProvider,
+    UnitInstance, PlayerState, GameStatus, Game, ActionType
+};
 
-pub type CardId = u32;
-pub type GameId = u32;
-
-#[derive(Clone)]
-#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
-#[ink::scale_derive(Encode, Decode, TypeInfo)]
-pub enum CardType {
-    Unit,
-    Spell,
-}
-
-#[derive(Clone)]
-#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
-#[ink::scale_derive(Encode, Decode, TypeInfo)]
-pub enum EffectType {
-    None = 0,
-    Taunt = 1,
-    Charge = 2,
-    HealSelf = 3,
-    DamageFront = 4,
-}
-
-#[derive(Clone)]
-#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
-#[ink::scale_derive(Encode, Decode, TypeInfo)]
-pub struct CardMetadata {
-    pub id: CardId,
-    pub name_hash: u32,
-    pub rarity: u8,
-    pub card_type: CardType,
-    pub cost: u8,
-    pub attack: u8,
-    pub health: u8,
-    pub effects: EffectType,
-}
-
-#[derive(Clone)]
-#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
-#[ink::scale_derive(Encode, Decode, TypeInfo)]
-pub struct UnitInstance {
-    pub card_id: CardId,
-    pub current_hp: i16,
-    pub acted_this_turn: bool,
-}
-
-#[derive(Clone)]
-#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
-#[ink::scale_derive(Encode, Decode, TypeInfo)]
-pub struct PlayerState {
-    pub addr: Address,
-    pub hp: i16,
-    pub energy: u8,
-    pub max_energy: u8,
-    pub deck: Vec<CardId>,
-    pub hand: Vec<CardId>,
-    pub board: [Option<UnitInstance>; 4],
-}
-
-#[derive(PartialEq, Eq, Clone)]
-#[cfg_attr(feature = "std", derive(Debug, ink::storage::traits::StorageLayout))]
-#[ink::scale_derive(Encode, Decode, TypeInfo)]
-pub enum GameStatus {
-    WaitingForPlayers,
-    InProgress,
-    Finished,
-}
-
-#[derive(Clone)]
-#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
-#[ink::scale_derive(Encode, Decode, TypeInfo)]
-pub struct Game {
-    pub id: GameId,
-    pub players: [PlayerState; 2],
-    pub active_idx: u8,
-    pub turn: u32,
-    pub status: GameStatus,
-}
-
-#[derive(Clone)]
-#[cfg_attr(feature = "std", derive(Debug, PartialEq, Eq, ink::storage::traits::StorageLayout))]
-#[ink::scale_derive(Encode, Decode, TypeInfo)]
-pub enum ActionType {
-    PlayCard { hand_index: u8, slot_index: u8 },
-    UseSpell { hand_index: u8, target_slot: u8 },
-    EndTurn,
-    Concede,
-}
 
 #[ink::contract]
 mod cards_on_chain {
@@ -99,10 +14,8 @@ mod cards_on_chain {
 
     #[ink(storage)]
     pub struct CardsOnChain {
-        // Card NFT storage
-        cards: Mapping<CardId, CardMetadata>,
-        card_owners: Mapping<CardId, Address>,
-        next_card_id: CardId,
+        // Reference to card NFT contract
+        card_contract: Option<Address>,
         
         // Game storage
         games: Mapping<GameId, Game>,
@@ -111,14 +24,6 @@ mod cards_on_chain {
         player_active_game: Mapping<Address, GameId>,
     }
 
-    #[ink(event)]
-    pub struct CardMinted {
-        #[ink(topic)]
-        card_id: CardId,
-        #[ink(topic)]
-        owner: Address,
-        metadata: CardMetadata,
-    }
 
     #[ink(event)]
     pub struct GameStarted {
@@ -173,84 +78,62 @@ mod cards_on_chain {
 
     impl CardsOnChain {
         #[ink(constructor)]
-        pub fn new() -> Self {
-            let mut contract = Self {
-                cards: Mapping::default(),
-                card_owners: Mapping::default(),
-                next_card_id: 1,
+        pub fn new(card_contract: Option<Address>) -> Self {
+            Self {
+                card_contract,
                 games: Mapping::default(),
                 next_game_id: 1,
                 waiting_player: None,
                 player_active_game: Mapping::default(),
-            };
-            
-            // Mint some default cards for testing
-            contract.mint_default_cards();
-            contract
-        }
-
-        fn mint_default_cards(&mut self) {
-            let default_cards = vec![
-                CardMetadata {
-                    id: 1,
-                    name_hash: 0x1234,
-                    rarity: 1,
-                    card_type: CardType::Unit,
-                    cost: 1,
-                    attack: 1,
-                    health: 1,
-                    effects: EffectType::None,
-                },
-                CardMetadata {
-                    id: 2,
-                    name_hash: 0x5678,
-                    rarity: 1,
-                    card_type: CardType::Unit,
-                    cost: 2,
-                    attack: 2,
-                    health: 2,
-                    effects: EffectType::None,
-                },
-                CardMetadata {
-                    id: 3,
-                    name_hash: 0x9abc,
-                    rarity: 2,
-                    card_type: CardType::Unit,
-                    cost: 3,
-                    attack: 3,
-                    health: 3,
-                    effects: EffectType::Charge,
-                },
-            ];
-
-            for card in default_cards {
-                self.cards.insert(card.id, &card);
-                self.next_card_id = card.id + 1;
             }
         }
 
         #[ink(message)]
-        pub fn mint_card(&mut self, to: Address, metadata: CardMetadata) -> CardId {
-            let card_id = self.next_card_id;
-            let mut card_metadata = metadata;
-            card_metadata.id = card_id;
-            
-            self.cards.insert(card_id, &card_metadata);
-            self.card_owners.insert(card_id, &to);
-            self.next_card_id += 1;
-
-            self.env().emit_event(CardMinted {
-                card_id,
-                owner: to,
-                metadata: card_metadata,
-            });
-
-            card_id
+        pub fn set_card_contract(&mut self, card_contract: Address) {
+            self.card_contract = Some(card_contract);
         }
 
-        #[ink(message)]
-        pub fn get_card(&self, card_id: CardId) -> Option<CardMetadata> {
-            self.cards.get(card_id)
+        fn get_card_data(&self, card_id: CardId) -> Option<CardMetadata> {
+            if let Some(card_contract_addr) = self.card_contract {
+                let card_contract: ink::contract_ref!(CardDataProvider) = card_contract_addr.into();
+                card_contract.get_card_metadata(card_id)
+            } else {
+                // Fallback for when card contract is not set - use hardcoded data for testing
+                use shared::{CardMetadata, CardType, EffectType};
+                match card_id {
+                    1 => Some(CardMetadata {
+                        id: 1,
+                        name_hash: 0x1234,
+                        rarity: 1,
+                        card_type: CardType::Unit,
+                        cost: 1,
+                        attack: 1,
+                        health: 1,
+                        effects: EffectType::None,
+                    }),
+                    2 => Some(CardMetadata {
+                        id: 2,
+                        name_hash: 0x5678,
+                        rarity: 1,
+                        card_type: CardType::Unit,
+                        cost: 2,
+                        attack: 2,
+                        health: 2,
+                        effects: EffectType::None,
+                    }),
+                    3 => Some(CardMetadata {
+                        id: 3,
+                        name_hash: 0x9abc,
+                        rarity: 2,
+                        card_type: CardType::Unit,
+                        cost: 3,
+                        attack: 3,
+                        health: 3,
+                        effects: EffectType::Charge,
+                    }),
+                    _ => None,
+                }
+            }
         }
 
         #[ink(message)]
@@ -392,28 +275,16 @@ mod cards_on_chain {
 
                     let card_id = game.players[active_idx].hand[hand_index as usize];
                     
-                    // Get card metadata (in real implementation, we'd query the card contract)
-                    let card_cost = match card_id {
-                        1 => 1,
-                        2 => 2,
-                        3 => 3,
-                        _ => 1,
-                    };
-
-                    if game.players[active_idx].energy < card_cost {
+                    // Get card metadata from card contract
+                    let card_data = self.get_card_data(card_id).ok_or(Error::InvalidAction)?;
+                    
+                    if game.players[active_idx].energy < card_data.cost {
                         return Err(Error::NotEnoughEnergy);
                     }
 
                     // Play the card
-                    game.players[active_idx].energy -= card_cost;
+                    game.players[active_idx].energy -= card_data.cost;
                     game.players[active_idx].hand.remove(hand_index as usize);
-                    
-                    let (_attack, health) = match card_id {
-                        1 => (1, 1),
-                        2 => (2, 2),
-                        3 => (3, 3),
-                        _ => (1, 1),
-                    };
 
                     game.players[active_idx].board[slot_index as usize] = Some(UnitInstance {
                         card_id,
@@ -566,38 +437,24 @@ mod cards_on_chain {
 
         #[ink::test]
         fn constructor_works() {
-            let contract = CardsOnChain::new();
-            assert_eq!(contract.next_card_id, 4); // 3 default cards + 1
+            let contract = CardsOnChain::new(None);
+            assert_eq!(contract.next_game_id, 1);
         }
 
         #[ink::test]
-        fn mint_card_works() {
-            let mut contract = CardsOnChain::new();
-            let account = Address::from([0x1; 20]);
+        fn get_card_data_works() {
+            let contract = CardsOnChain::new(None);
             
-            let metadata = CardMetadata {
-                id: 0, // Will be overwritten
-                name_hash: 0xabcd,
-                rarity: 3,
-                card_type: CardType::Unit,
-                cost: 4,
-                attack: 4,
-                health: 5,
-                effects: EffectType::Taunt,
-            };
-
-            let card_id = contract.mint_card(account, metadata.clone());
-            assert_eq!(card_id, 4);
-            
-            let stored_card = contract.get_card(card_id).unwrap();
-            assert_eq!(stored_card.cost, 4);
-            assert_eq!(stored_card.attack, 4);
-            assert_eq!(stored_card.health, 5);
+            // Test hardcoded fallback data
+            let card_data = contract.get_card_data(1).unwrap();
+            assert_eq!(card_data.cost, 1);
+            assert_eq!(card_data.attack, 1);
+            assert_eq!(card_data.health, 1);
         }
 
         #[ink::test]
         fn matchmaking_works() {
-            let mut contract = CardsOnChain::new();
+            let mut contract = CardsOnChain::new(None);
             let alice = Address::from([0x1; 20]);
             let bob = Address::from([0x2; 20]);
 
@@ -626,26 +483,26 @@ mod cards_on_chain {
         type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
         #[ink_e2e::test]
-        async fn e2e_mint_and_get_card(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
-            let mut constructor = CardsOnChainRef::new();
+        async fn e2e_game_creation(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            let mut constructor = CardsOnChainRef::new(None);
             let contract = client
                 .instantiate("cards_on_chain", &ink_e2e::alice(), &mut constructor)
                 .submit()
                 .await
                 .expect("instantiate failed");
-            let mut call_builder = contract.call_builder::<CardsOnChain>();
+            let call_builder = contract.call_builder::<CardsOnChain>();
 
-            // Test getting a default card
-            let get_card = call_builder.get_card(1);
-            let get_result = client.call(&ink_e2e::alice(), &get_card).dry_run().await?;
-            assert!(get_result.return_value().is_some());
+            // Test getting game state (should be none initially)
+            let get_game = call_builder.get_game_state(1);
+            let get_result = client.call(&ink_e2e::alice(), &get_game).dry_run().await?;
+            assert!(get_result.return_value().is_none());
 
             Ok(())
         }
 
         #[ink_e2e::test]
         async fn e2e_full_game_flow(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
-            let mut constructor = CardsOnChainRef::new();
+            let mut constructor = CardsOnChainRef::new(None);
             let contract = client
                 .instantiate("cards_on_chain", &ink_e2e::alice(), &mut constructor)
                 .submit()
