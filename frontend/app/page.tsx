@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useConnectedWallets, useWalletDisconnector, useAccounts, useSigner, SignerProvider, useWalletConnector } from "@reactive-dot/react"
 import { ConnectionButton } from "dot-connect/react.js"
+import { useGameState } from "@/hooks/use-game-state"
 
 export default function Home() {
   const router = useRouter()
@@ -17,6 +18,8 @@ export default function Home() {
 
   const isConnected = useMemo(() => connectedWallets.length > 0, [connectedWallets])
   const needsAccountSelection = isConnected && accounts.length > 0 && !currentSigner && !selectedSigner
+
+  const { gameId, setGameId } = useGameState()
 
   const [isDisconnecting, setIsDisconnecting] = useState(false)
 
@@ -44,6 +47,8 @@ export default function Home() {
   }
 
   const handleStart = () => {
+    {/* fn create_game(&mut self, player_a: AccountId, player_b: AccountId) */ }
+    setGameId(Math.random().toString(36).substring(2, 15)) // local storage too? 
     router.push("/game")
   }
 

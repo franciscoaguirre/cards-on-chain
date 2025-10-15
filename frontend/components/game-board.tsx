@@ -85,6 +85,7 @@ export function GameBoard({ addLog }: GameBoardProps) {
   }
 
   const handleDrawCard = () => {
+    //  fn draw_card(&self, game: &mut Game, player_idx: usize)
     if (playerHand.length >= 10) {
       addLog("Hand is full")
       return

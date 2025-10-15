@@ -8,6 +8,7 @@ import { InjectedWalletProvider } from "@reactive-dot/core/wallets.js"
 import { paseo } from "@polkadot-api/descriptors"
 import { registerDotConnect } from "dot-connect"
 import "dot-connect/font.css"
+import { GameStateProvider } from "@/hooks/use-game-state"
 
 export function Providers({ children }: { children: React.ReactNode }) {
     const [clientConfig, setClientConfig] = useState<ReturnType<typeof defineConfig> | null>(null)
@@ -37,9 +38,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return (
         <ReactiveDotProvider config={clientConfig}>
             <ChainProvider chainId="paseo">
-                <Suspense>
-                    {children}
-                </Suspense>
+                <GameStateProvider>
+                    <Suspense>
+                        {children}
+                    </Suspense>
+                </GameStateProvider>
             </ChainProvider>
         </ReactiveDotProvider>
     )
