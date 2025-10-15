@@ -2,23 +2,26 @@
   "version": 0,
   "descriptorPath": ".papi/descriptors",
   "entries": {
+    "dot": {
+      "chain": "polkadot",
+      "metadata": ".papi/metadata/dot.scale",
+      "genesis": "0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3",
+      "codeHash": "0xa4d527cb0db4146686eeffb216b562fe68440185d5067e6177d1681ff7bb3043"
+    },
     "paseo": {
-      "chain": "paseo",
+      "wsUrl": "wss://testnet-passet-hub.polkadot.io",
       "metadata": ".papi/metadata/paseo.scale",
-      "genesis": "0x77afd6190f1554ad45fd0d31aee62aacc33c6db0ea801129acb813f913e0764f",
-      "codeHash": "0xd2572d0cc3c1afad3cf0d65e61e4e8632d1e7a56ba93e8e89f79e1d86232bfa8"
+      "genesis": "0xfd974cf9eaf028f5e44b9fdd1949ab039c6cf9cc54449b0b60d71b042e79aeb6",
+      "codeHash": "0x3e088e61b3cb51e74c67cb3634a699109bf3ded14fbd35ed731968d0aa82a441"
     },
     "pas": {
       "chain": "paseo",
       "metadata": ".papi/metadata/pas.scale",
       "genesis": "0x77afd6190f1554ad45fd0d31aee62aacc33c6db0ea801129acb813f913e0764f",
       "codeHash": "0xd2572d0cc3c1afad3cf0d65e61e4e8632d1e7a56ba93e8e89f79e1d86232bfa8"
-    },
-    "dot": {
-      "chain": "polkadot",
-      "metadata": ".papi/metadata/dot.scale",
-      "genesis": "0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3",
-      "codeHash": "0xa4d527cb0db4146686eeffb216b562fe68440185d5067e6177d1681ff7bb3043"
     }
+  },
+  "ink": {
+    "cards_on_chain": ".papi/contracts/cards_on_chain.json"
   }
 }
