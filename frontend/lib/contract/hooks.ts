@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { contract } from "@/lib/client";
-import { AccountId, Binary, SS58String, TxFinalizedPayload, type PolkadotSigner } from "polkadot-api";
+import { AccountId, Binary, Enum, SS58String, TxFinalizedPayload, type PolkadotSigner } from "polkadot-api";
 import { ss58ToEthereum } from "@polkadot-api/sdk-ink";
+import { ActionType } from "./types";
 
 // Generic async hook with loading state and transaction logging
 function useAsyncCall<T extends any[], R>(
@@ -44,7 +45,7 @@ export const useRegisterForMatch = () => {
     
     return new Promise((resolve, reject) => {
       const subscription = contract.send("register_for_match", { origin: ss58Account })
-        .signSubmitAndWatch(signer, { at: "finalized" })
+        .signSubmitAndWatch(signer)
         .subscribe({
           next: (result) => {
             if (result.type === "broadcasted") {
@@ -90,7 +91,7 @@ export const useGetPlayerGame = () => {
 };
 
 export const useSubmitTurnActions = () => {
-  return useAsyncCall(async (signer: PolkadotSigner, gameId: number, actions: any[]): Promise<TxFinalizedPayload> => {
+  return useAsyncCall(async (signer: PolkadotSigner, gameId: number, actions: ActionType[]): Promise<TxFinalizedPayload> => {
     const ss58Account = getSs58Account(signer);
     
     return new Promise((resolve, reject) => {
@@ -100,7 +101,7 @@ export const useSubmitTurnActions = () => {
           game_id: gameId,
           actions
         }
-      }).signSubmitAndWatch(signer, { at: "finalized" })
+      }).signSubmitAndWatch(signer)
         .subscribe({
           next: (result) => {
             if (result.type === "broadcasted") {

@@ -1,3 +1,5 @@
+import { Enum } from "polkadot-api";
+
 export type CardId = number;
 export type GameId = number;
 export type AccountId = string; // H160 formatted as 0x...
@@ -57,10 +59,17 @@ export interface Game {
 }
 
 export type ActionType =
-  | { PlayCard: { hand_index: number; slot_index: number } }
-  | { UseSpell: { hand_index: number; target_slot: number } }
-  | "EndTurn"
-  | "Concede";
+  Enum<{
+    PlayCard: { hand_index: number, slot_index: number },
+    UseSpell: { hand_index: number, target_slot: number },
+    EndTurn: undefined,
+    Concede: undefined,
+  }>;
+
+  // | { PlayCard: { hand_index: number; slot_index: number } }
+  // | { UseSpell: { hand_index: number; target_slot: number } }
+  // | "EndTurn"
+  // | "Concede";
 
 export enum ErrorCode {
   GameNotFound = "GameNotFound",

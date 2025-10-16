@@ -9,8 +9,8 @@ import {
   useSubmitTurnActions,
 } from "@/lib/contract/hooks";
 import { CARD_LIST } from "@/lib/cards";
-import type { PolkadotSigner } from "polkadot-api";
-import type { Game } from "@/lib/contract/types";
+import { Enum, type PolkadotSigner } from "polkadot-api";
+import type { ActionType, Game } from "@/lib/contract/types";
 
 interface Card {
   id: number;
@@ -47,7 +47,7 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
   const [energy, setEnergy] = useState(1);
   const [maxEnergy, setMaxEnergy] = useState(1);
   const [turn, setTurn] = useState(1);
-  const [pendingActions, setPendingActions] = useState<any[]>([]);
+  const [pendingActions, setPendingActions] = useState<ActionType[]>([]);
 
   // Initialize game state from props if provided (for resumed games)
   useEffect(() => {
@@ -191,7 +191,9 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
     // Queue on-chain action in order
     setPendingActions((prev) => [
       ...prev,
-      { PlayCard: { hand_index: handIndex, slot_index: slotIndex } },
+      ...[
+        Enum('PlayCard', { hand_index: handIndex, slot_index: slotIndex }),
+      ]
     ]);
     setSelectedCard(null);
   };
@@ -217,7 +219,7 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
 
   const handleEndTurn = async () => {
     // Submit ordered actions for this turn + EndTurn
-    const actionsToSubmit = [...pendingActions, "EndTurn"];
+    const actionsToSubmit = [...pendingActions, Enum('EndTurn')];
     try {
       const result = await submitTurnActions(signer, gameId, actionsToSubmit);
       
@@ -297,9 +299,9 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
             </div>
           </div>
           <div className="flex gap-2 justify-center flex-wrap min-h-[120px]">
-            {playerHand.map((card) => (
+            {playerHand.map((card, i) => (
               <GameCard
-                key={card.id}
+                key={i}
                 card={card}
                 isSelected={selectedCard === card.id}
                 onClick={() => handleCardSelect(card.id)}
