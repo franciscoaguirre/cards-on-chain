@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { contract } from "@/lib/client";
-import { AccountId, Binary, Enum, SS58String, TxFinalizedPayload, type PolkadotSigner } from "polkadot-api";
+import { AccountId, Binary, SS58String, TxFinalizedPayload, type PolkadotSigner } from "polkadot-api";
 import { ss58ToEthereum } from "@polkadot-api/sdk-ink";
 import { ActionType } from "./types";
 

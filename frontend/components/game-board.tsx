@@ -11,6 +11,18 @@ import {
 import { CARD_LIST } from "@/lib/cards";
 import { Enum, type PolkadotSigner } from "polkadot-api";
 import type { ActionType, Game } from "@/lib/contract/types";
+import { 
+  simulateAutoResolution, 
+  checkGameEndAfterResolution, 
+  getUnitsToBeDestroyed, 
+  getPlayerDamage 
+} from "@/lib/auto-resolution";
+import { 
+  createCombatAnimations, 
+  getActiveAnimationsForSlot, 
+  type CombatSequence, 
+  type AttackAnimation 
+} from "@/lib/attack-animations";
 
 interface Card {
   id: number;
@@ -48,6 +60,9 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
   const [maxEnergy, setMaxEnergy] = useState(1);
   const [turn, setTurn] = useState(1);
   const [pendingActions, setPendingActions] = useState<ActionType[]>([]);
+  const [combatSequence, setCombatSequence] = useState<CombatSequence | null>(null);
+  const [animationTime, setAnimationTime] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   // Initialize game state from props if provided (for resumed games)
   useEffect(() => {
@@ -145,6 +160,30 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
     }
   }, [gameState, addLog]);
 
+  // Animation timer effect
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    
+    if (isAnimating && combatSequence) {
+      intervalId = setInterval(() => {
+        setAnimationTime(prev => {
+          const newTime = prev + 50; // Update every 50ms
+          if (newTime >= combatSequence.totalDuration) {
+            setIsAnimating(false);
+            setCombatSequence(null);
+            setAnimationTime(0);
+            return 0;
+          }
+          return newTime;
+        });
+      }, 50);
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isAnimating, combatSequence]);
+
   const handleCardSelect = (cardId: number) => {
     if (selectedCard === cardId) {
       setSelectedCard(null);
@@ -217,21 +256,115 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
     addLog(`Drew ${newCard.name}`);
   };
 
-  const handleEndTurn = async () => {
-    // Submit ordered actions for this turn + EndTurn
-    const actionsToSubmit = [...pendingActions, Enum('EndTurn')];
-    try {
-      const result = await submitTurnActions(signer, gameId, actionsToSubmit);
+  const playAttackAnimation = () => {
+    if (!isAnimating) {
+      addLog("🎬 Playing TEST animation...");
       
-      if (result) {
-        setPendingActions([]);
-        setTurn(turn + 1);
-        setEnergy(maxEnergy);
-        addLog(`Turn ${turn + 1} started`);
-        addLog("Energy refreshed");
+      // Create a simple test animation
+      const testSequence = {
+        animations: [
+          {
+            id: 'test-attack-0',
+            type: 'unit-attack' as const,
+            sourceSlot: 0,
+            delay: 0,
+            duration: 2000
+          },
+          {
+            id: 'test-damage-1',
+            type: 'unit-damage' as const,
+            targetSlot: 1,
+            damage: 5,
+            delay: 1000,
+            duration: 2000
+          }
+        ],
+        totalDuration: 3000
+      };
+      
+      console.log("Created TEST sequence:", testSequence);
+      setCombatSequence(testSequence);
+      setAnimationTime(0);
+      setIsAnimating(true);
+    }
+  };
+
+  const handleEndTurn = async () => {
+    if (isAnimating) {
+      addLog("⏳ Animation in progress, please wait...");
+      return;
+    }
+
+    // Play attack animation first if we have game state
+    if (gameState) {
+      // Get units that will be destroyed
+      const unitsToDestroy = getUnitsToBeDestroyed(gameState);
+      if (unitsToDestroy.length > 0) {
+        const destroyedNames = unitsToDestroy.map(({ playerIdx, slot }) => {
+          const unit = gameState.players[playerIdx].board[slot];
+          if (unit) {
+            const cardConfig = CARD_LIST.find(card => card.id === unit.card_id);
+            const playerName = playerIdx === 0 ? "Your" : "Opponent's";
+            return `${playerName} ${cardConfig?.name || `Card ${unit.card_id}`}`;
+          }
+          return "Unknown unit";
+        });
+        addLog(`💀 Combat preview: ${destroyedNames.join(", ")} will be destroyed`);
       }
-    } catch (error) {
-      addLog(`[ERROR] Failed to submit turn: ${error}`);
+
+      // Get player damage
+      const playerDamage = getPlayerDamage(gameState);
+      playerDamage.forEach(({ playerIdx, damage }) => {
+        const playerName = playerIdx === 0 ? "You" : "Opponent";
+        addLog(`⚔️ Combat preview: ${playerName} will take ${damage} damage`);
+      });
+
+      // Check for game end
+      const winner = checkGameEndAfterResolution(gameState);
+      if (winner !== null) {
+        const winnerName = winner === 0 ? "You" : "Opponent";
+        addLog(`🏆 Game will end - ${winnerName} wins!`);
+      }
+
+      // Play the animation
+      playAttackAnimation();
+      
+      // Wait for animation to complete before submitting
+      const sequence = createCombatAnimations(gameState);
+      setTimeout(async () => {
+        // Submit after animation completes
+        const actionsToSubmit = [...pendingActions, Enum('EndTurn')];
+        try {
+          const result = await submitTurnActions(signer, gameId, actionsToSubmit);
+          
+          if (result) {
+            setPendingActions([]);
+            setTurn(turn + 1);
+            setEnergy(maxEnergy);
+            addLog(`Turn ${turn + 1} started`);
+            addLog("Energy refreshed");
+          }
+        } catch (error) {
+          addLog(`[ERROR] Failed to submit turn: ${error}`);
+        }
+      }, sequence.totalDuration + 200);
+      
+    } else {
+      // No game state, submit immediately
+      const actionsToSubmit = [...pendingActions, Enum('EndTurn')];
+      try {
+        const result = await submitTurnActions(signer, gameId, actionsToSubmit);
+        
+        if (result) {
+          setPendingActions([]);
+          setTurn(turn + 1);
+          setEnergy(maxEnergy);
+          addLog(`Turn ${turn + 1} started`);
+          addLog("Energy refreshed");
+        }
+      } catch (error) {
+        addLog(`[ERROR] Failed to submit turn: ${error}`);
+      }
     }
   };
 
@@ -260,9 +393,27 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
 
         {/* Opponent Board */}
         <div className="grid grid-cols-4 gap-4">
-          {opponentBoard.map((card, i) => (
-            <BoardSlot key={i} card={card} isOpponent />
-          ))}
+          {opponentBoard.map((card, i) => {
+            const animations = combatSequence ? getActiveAnimationsForSlot(
+              combatSequence.animations, 
+              i, 
+              1, // opponent is player index 1
+              animationTime
+            ) : [];
+            
+            if (animations.length > 0) {
+              console.log(`Opponent slot ${i} has ${animations.length} animations at time ${animationTime}:`, animations);
+            }
+            
+            return (
+              <BoardSlot 
+                key={i} 
+                card={card} 
+                isOpponent 
+                animations={animations}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -277,14 +428,23 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
       <div className="space-y-4">
         {/* Player Board */}
         <div className="grid grid-cols-4 gap-4">
-          {playerBoard.map((card, i) => (
-            <BoardSlot
-              key={i}
-              card={card}
-              onClick={() => handleSlotClick(i)}
-              isPlayable={selectedCard !== null && card === null}
-            />
-          ))}
+          {playerBoard.map((card, i) => {
+            const animations = combatSequence ? getActiveAnimationsForSlot(
+              combatSequence.animations, 
+              i, 
+              0, // player is player index 0
+              animationTime
+            ) : [];
+            return (
+              <BoardSlot
+                key={i}
+                card={card}
+                onClick={() => handleSlotClick(i)}
+                isPlayable={selectedCard !== null && card === null}
+                animations={animations}
+              />
+            );
+          })}
         </div>
 
         {/* Player Hand */}
@@ -321,10 +481,18 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
             {"[DRAW_CARD]"}
           </Button>
           <Button
+            onClick={playAttackAnimation}
+            disabled={isAnimating}
+            className="bevel-button bg-yellow-500 text-yellow-900 hover:bg-yellow-400 font-bold px-6"
+          >
+            {"[TEST_ANIMATION]"}
+          </Button>
+          <Button
             onClick={handleEndTurn}
+            disabled={isAnimating}
             className="bevel-button bg-accent text-accent-foreground hover:bg-accent/80 font-bold px-6"
           >
-            {"[END_TURN]"}
+            {isAnimating ? "[ANIMATING...]" : "[END_TURN]"}
           </Button>
         </div>
       </div>
