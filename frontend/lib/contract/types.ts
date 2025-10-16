@@ -1,8 +1,8 @@
-import { Enum } from "polkadot-api";
+import { Binary, Enum } from "polkadot-api";
 
 export type CardId = number;
 export type GameId = number;
-export type AccountId = string; // H160 formatted as 0x...
+export type AccountId = Binary;
 
 export enum CardType {
   Unit = "Unit",

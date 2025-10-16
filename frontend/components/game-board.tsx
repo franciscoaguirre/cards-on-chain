@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import {
   useSubmitTurnActions,
 } from "@/lib/contract/hooks";
+import { AccountId } from "polkadot-api";
+import { ss58ToEthereum } from "@polkadot-api/sdk-ink";
 import { CARD_LIST } from "@/lib/cards";
 import { Enum, type PolkadotSigner } from "polkadot-api";
 import type { ActionType, Game } from "@/lib/contract/types";
@@ -62,20 +64,42 @@ export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog 
   const [combatSequence, setCombatSequence] = useState<CombatSequence | null>(null);
   const [animationTime, setAnimationTime] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isCurrentPlayerTurn, setIsCurrentPlayerTurn] = useState(false);
 
   // Initialize game state from props if provided (for resumed games)
   useEffect(() => {
-    if (gameState) {
+    if (gameState && signer) {
       console.log("Contract game state:", gameState);
       
-      // TODO: Determine which player index is the current signer
-      // For now, assume player 0 is the current player
-      const currentPlayerIndex = 0;
+      // Determine which player index is the current signer by comparing addresses
+      const ss58Account = AccountId().dec(signer.publicKey);
+      const ethAddress = ss58ToEthereum(ss58Account);
+      
+      // Find current player index by comparing addresses
+      let currentPlayerIndex = -1;
+      for (let i = 0; i < gameState.players.length; i++) {
+        console.log('GameState:');
+        console.dir({ gameState });
+        if (gameState.players[i].addr.asHex().toLowerCase() === ethAddress.asHex().toLowerCase()) {
+          currentPlayerIndex = i;
+          break;
+        }
+      }
+      
+      // If we can't find the player, default to 0 and log warning
+      if (currentPlayerIndex === -1) {
+        console.warn("Could not find current player in game state, defaulting to player 0");
+        console.warn("Signer address:", ethAddress);
+        console.warn("Player addresses:", gameState.players.map(p => p.addr));
+        currentPlayerIndex = 0;
+      }
+      
       const currentPlayer = gameState.players[currentPlayerIndex];
       const opponent = gameState.players[1 - currentPlayerIndex];
       
       // Determine whose turn it is using active_idx
-      const isCurrentPlayerTurn = gameState.active_idx === currentPlayerIndex;
+      const isPlayerTurn = gameState.active_idx === currentPlayerIndex;
+      setIsCurrentPlayerTurn(isPlayerTurn);
       const activePlayer = gameState.players[gameState.active_idx];
       
       // Set game state from contract
@@ -143,9 +167,9 @@ export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog 
       setOpponentBoard(opponentBoardState);
       
       addLog(`Game resumed: Turn ${gameState.turn}, Energy ${activePlayer.energy}/${activePlayer.max_energy}`);
-      addLog(`${isCurrentPlayerTurn ? "Your turn" : "Opponent's turn"}`);
+      addLog(`${isPlayerTurn ? "Your turn" : "Opponent's turn"}`);
     }
-  }, [gameState, addLog]);
+  }, [gameState, signer, addLog]);
 
   // Initialize game for new games (when no gameState is provided)
   useEffect(() => {
@@ -184,6 +208,11 @@ export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog 
   }, [isAnimating, combatSequence]);
 
   const handleCardSelect = (cardId: number) => {
+    if (!isCurrentPlayerTurn) {
+      addLog("Not your turn");
+      return;
+    }
+    
     if (selectedCard === cardId) {
       setSelectedCard(null);
       addLog("Card deselected");
@@ -195,6 +224,11 @@ export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog 
   };
 
   const handleSlotClick = (slotIndex: number) => {
+    if (!isCurrentPlayerTurn) {
+      addLog("Not your turn");
+      return;
+    }
+    
     if (selectedCard === null) {
       addLog("No card selected");
       return;
@@ -237,6 +271,11 @@ export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog 
   };
 
   const handleDrawCard = () => {
+    if (!isCurrentPlayerTurn) {
+      addLog("Not your turn");
+      return;
+    }
+    
     //  fn draw_card(&self, game: &mut Game, player_idx: usize)
     if (playerHand.length >= 10) {
       addLog("Hand is full");
@@ -285,6 +324,11 @@ export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog 
   };
 
   const handleEndTurn = async () => {
+    if (!isCurrentPlayerTurn) {
+      addLog("Not your turn");
+      return;
+    }
+    
     if (isAnimating) {
       addLog("⏳ Animation in progress, please wait...");
       return;
@@ -415,7 +459,7 @@ export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog 
                 key={i}
                 card={card}
                 onClick={() => handleSlotClick(i)}
-                isPlayable={selectedCard !== null && card === null}
+                isPlayable={isCurrentPlayerTurn && selectedCard !== null && card === null}
                 animations={animations}
               />
             );
@@ -440,7 +484,7 @@ export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog 
                 card={card}
                 isSelected={selectedCard === card.id}
                 onClick={() => handleCardSelect(card.id)}
-                canAfford={card.cost <= energy}
+                canAfford={isCurrentPlayerTurn && card.cost <= energy}
               />
             ))}
           </div>
@@ -450,15 +494,15 @@ export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog 
         <div className="flex gap-4 justify-center">
           <Button
             onClick={handleDrawCard}
-            disabled={playerHand.length >= 10}
-            className="bevel-button bg-secondary text-secondary-foreground hover:bg-secondary/80 font-bold px-6"
+            disabled={!isCurrentPlayerTurn || playerHand.length >= 10}
+            className="bevel-button bg-secondary text-secondary-foreground hover:bg-secondary/80 font-bold px-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {"[DRAW_CARD]"}
           </Button>
           <Button
             onClick={handleEndTurn}
-            disabled={isAnimating}
-            className="bevel-button bg-accent text-accent-foreground hover:bg-accent/80 font-bold px-6"
+            disabled={!isCurrentPlayerTurn || isAnimating}
+            className="bevel-button bg-accent text-accent-foreground hover:bg-accent/80 font-bold px-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isAnimating ? "[ANIMATING...]" : "[END_TURN]"}
           </Button>
