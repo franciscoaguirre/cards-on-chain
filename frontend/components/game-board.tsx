@@ -12,13 +12,11 @@ import { CARD_LIST } from "@/lib/cards";
 import { Enum, type PolkadotSigner } from "polkadot-api";
 import type { ActionType, Game } from "@/lib/contract/types";
 import { 
-  simulateAutoResolution, 
   checkGameEndAfterResolution, 
   getUnitsToBeDestroyed, 
   getPlayerDamage 
 } from "@/lib/auto-resolution";
 import { 
-  createCombatAnimations, 
   getActiveAnimationsForSlot, 
   type CombatSequence, 
   type AttackAnimation 
@@ -35,11 +33,12 @@ interface Card {
 interface GameBoardProps {
   signer: PolkadotSigner;
   gameId: number;
-  gameState?: Game;
+  gameState: Game | null;
+  refreshGameState: () => void;
   addLog: (message: string) => void;
 }
 
-export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps) {
+export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog }: GameBoardProps) {
   const { execute: submitTurnActions, loading: turnLoading, error: turnError } = useSubmitTurnActions();
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [playerBoard, setPlayerBoard] = useState<(Card | null)[]>([
@@ -258,9 +257,6 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
 
   const playAttackAnimation = () => {
     if (!isAnimating) {
-      addLog("🎬 Playing TEST animation...");
-      
-      // Create a simple test animation
       const testSequence = {
         animations: [
           {
@@ -282,7 +278,6 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
         totalDuration: 3000
       };
       
-      console.log("Created TEST sequence:", testSequence);
       setCombatSequence(testSequence);
       setAnimationTime(0);
       setIsAnimating(true);
@@ -295,7 +290,24 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
       return;
     }
 
-    // Play attack animation first if we have game state
+    // First submit the transaction.
+    const actionsToSubmit = [...pendingActions, Enum('EndTurn')];
+    submitTurnActions(signer, gameId, actionsToSubmit).then((value) => {
+      console.log("Submitting actions finally finalized.");
+      if (value) {
+        setPendingActions([]);
+        setTurn(turn + 1);
+        setEnergy(maxEnergy);
+        addLog(`Turn ${turn + 1} started`);
+        addLog("Energy refreshed");
+      }
+    }).catch((error) => {
+      addLog(`[ERROR] Failed to submit turn: ${error}`);
+    }).finally(() => {
+      refreshGameState();
+    });
+
+    // Then play the attack animation
     if (gameState) {
       // Get units that will be destroyed
       const unitsToDestroy = getUnitsToBeDestroyed(gameState);
@@ -328,43 +340,6 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
 
       // Play the animation
       playAttackAnimation();
-      
-      // Wait for animation to complete before submitting
-      const sequence = createCombatAnimations(gameState);
-      setTimeout(async () => {
-        // Submit after animation completes
-        const actionsToSubmit = [...pendingActions, Enum('EndTurn')];
-        try {
-          const result = await submitTurnActions(signer, gameId, actionsToSubmit);
-          
-          if (result) {
-            setPendingActions([]);
-            setTurn(turn + 1);
-            setEnergy(maxEnergy);
-            addLog(`Turn ${turn + 1} started`);
-            addLog("Energy refreshed");
-          }
-        } catch (error) {
-          addLog(`[ERROR] Failed to submit turn: ${error}`);
-        }
-      }, sequence.totalDuration + 200);
-      
-    } else {
-      // No game state, submit immediately
-      const actionsToSubmit = [...pendingActions, Enum('EndTurn')];
-      try {
-        const result = await submitTurnActions(signer, gameId, actionsToSubmit);
-        
-        if (result) {
-          setPendingActions([]);
-          setTurn(turn + 1);
-          setEnergy(maxEnergy);
-          addLog(`Turn ${turn + 1} started`);
-          addLog("Energy refreshed");
-        }
-      } catch (error) {
-        addLog(`[ERROR] Failed to submit turn: ${error}`);
-      }
     }
   };
 
@@ -479,13 +454,6 @@ export function GameBoard({ signer, gameId, gameState, addLog }: GameBoardProps)
             className="bevel-button bg-secondary text-secondary-foreground hover:bg-secondary/80 font-bold px-6"
           >
             {"[DRAW_CARD]"}
-          </Button>
-          <Button
-            onClick={playAttackAnimation}
-            disabled={isAnimating}
-            className="bevel-button bg-yellow-500 text-yellow-900 hover:bg-yellow-400 font-bold px-6"
-          >
-            {"[TEST_ANIMATION]"}
           </Button>
           <Button
             onClick={handleEndTurn}

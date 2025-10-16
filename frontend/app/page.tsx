@@ -63,6 +63,15 @@ export default function Home() {
     }
   };
 
+  const handleRefreshGameState = async (gameId: number) => {
+    if (signer) {
+      const gameState = await getGameState(signer, gameId);
+      if (gameState && gameState.success && gameState.value.response) {
+        setGameState(gameState.value.response);
+      }
+    }
+  };
+
   const handleGameStarted = (newGameId: number) => {
     setGameId(newGameId);
     setStage("game");
@@ -113,6 +122,7 @@ export default function Home() {
             signer={signer}
             gameId={gameId}
             gameState={gameState}
+            refreshGameState={() => handleRefreshGameState(gameId)}
             addLog={addLog} 
           />
           <DebugLog logs={logs} />
