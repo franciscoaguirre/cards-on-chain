@@ -514,7 +514,7 @@ mod cards {
 
         #[ink(message)]
         fn card_exists(&self, card_id: shared::CardId) -> bool {
-            self.token_owner.contains(card_id)
+            self.card_metadata.contains(card_id)
         }
 
         #[ink(message)]

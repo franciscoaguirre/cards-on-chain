@@ -33,7 +33,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     attackDirection: "left-right",
     specialEffect:
       "Steals 2 health from the enemy and gets +1 health if at least one Vibe Coder is on the board",
-    image: "/cards/Hacker.svg",
+    image: "/cards/Hacker.png",
   },
   "Head Hunter": {
     id: 2,
@@ -44,7 +44,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     attack: 1,
     attackDirection: "forward",
     specialEffect: "Steals random opposing unit and places it on the own side",
-    image: "/cards/HeadHunter.svg",
+    image: "/cards/HeadHunter.png",
   },
   Manager: {
     id: 3,
@@ -54,7 +54,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     health: 5,
     attack: 5,
     attackDirection: "forward",
-    image: "/cards/Puffer.svg", // temporary image until Manager asset exists
+    image: "/cards/Manager.png",
   },
   "Vibe Coder": {
     id: 4,
@@ -66,7 +66,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     attackDirection: "forward",
     specialEffect:
       "Reduces the health of the player playing the card by 1 when played",
-    image: "/cards/VibeCoder.svg",
+    image: "/cards/VibeCoder.png",
   },
   "Twitter drama queen": {
     id: 5,
@@ -76,7 +76,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     health: 2,
     attack: 2,
     attackDirection: "forward",
-    image: "/cards/TwitterDramaQueen.svg",
+    image: "/cards/TwitterDramaQueen.png",
   },
   "The Yapper": {
     id: 6,
@@ -88,7 +88,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     attackDirection: "forward",
     specialEffect:
       "+1 Health and Attack for every Twitter drama queen on the board",
-    image: "/cards/Yapper.svg",
+    image: "/cards/Yapper.png",
   },
   "Code purist": {
     id: 7,
@@ -98,7 +98,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     health: 3,
     attack: 3,
     attackDirection: "forward",
-    image: "/cards/CodePurist.svg",
+    image: "/cards/CodePurist.png",
   },
   Degen: {
     id: 8,
@@ -109,7 +109,7 @@ export const CARDS: Record<CardKey, CardConfig> = {
     attack: 2,
     attackDirection: "forward",
     specialEffect: "Decreases the health by 1 of a random unit on the board",
-    image: "/cards/Degen.svg",
+    image: "/cards/Degen.png",
   },
 };
 

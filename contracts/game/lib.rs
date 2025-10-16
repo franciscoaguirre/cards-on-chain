@@ -401,8 +401,12 @@ mod cards_on_chain {
             }
             game.players[new_active_idx].energy = game.players[new_active_idx].max_energy;
 
-            // Draw a card
+            // Draw a card for the new active player at start of their turn
             self.draw_card(game, new_active_idx);
+            
+            // Draw a card for the opponent when we end our turn
+            let previous_active_idx = 1 - new_active_idx;
+            self.draw_card(game, previous_active_idx);
 
             // Reset unit action flags
             for unit in &mut game.players[new_active_idx].board {
@@ -459,12 +463,12 @@ mod cards_on_chain {
             let bob = Address::from([0x2; 20]);
 
             // Set the contract caller to alice for the first registration
-            ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
+            ink::env::test::set_caller(alice);
             let result1 = contract.register_for_match().unwrap();
             assert_eq!(result1, 0); // Alice is waiting
 
             // Set the contract caller to bob for the second registration
-            ink::env::test::set_caller::<ink::env::DefaultEnvironment>(bob);
+            ink::env::test::set_caller(bob);
             let game_id = contract.register_for_match().unwrap();
             assert_eq!(game_id, 1); // Game created
 

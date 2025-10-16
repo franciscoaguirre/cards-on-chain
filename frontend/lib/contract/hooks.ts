@@ -130,3 +130,48 @@ export const useSubmitTurnActions = () => {
     });
   });
 };
+
+// Hook for listening to TurnEnded events
+export const useTurnEndedListener = () => {
+  const [listening, setListening] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const startListening = useCallback((gameId: number, onTurnEnded: (event: any) => void) => {
+    setListening(true);
+    setError(null);
+    
+    try {
+      // Listen to TurnEnded events for the specific game
+      const subscription = contract.events.TurnEnded.watch()
+        .subscribe({
+          next: (event) => {
+            console.log("🔄 TurnEnded event received:", event);
+            
+            // Check if this event is for our game
+            if (event.args.game_id === gameId) {
+              onTurnEnded(event);
+            }
+          },
+          error: (err) => {
+            const errorMessage = err instanceof Error ? err.message : "Unknown error";
+            setError(errorMessage);
+            console.error("❌ TurnEnded listener error:", err);
+            setListening(false);
+          }
+        });
+        
+      // Return cleanup function
+      return () => {
+        subscription.unsubscribe();
+        setListening(false);
+      };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      setError(errorMessage);
+      setListening(false);
+      console.error("❌ Failed to start TurnEnded listener:", err);
+    }
+  }, []);
+
+  return { startListening, listening, error };
+};

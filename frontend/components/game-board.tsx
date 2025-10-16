@@ -7,6 +7,7 @@ import { ManaDisplay } from "@/components/mana-display";
 import { Button } from "@/components/ui/button";
 import {
   useSubmitTurnActions,
+  useTurnEndedListener,
 } from "@/lib/contract/hooks";
 import { AccountId } from "polkadot-api";
 import { ss58ToEthereum } from "@polkadot-api/sdk-ink";
@@ -42,6 +43,7 @@ interface GameBoardProps {
 
 export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog }: GameBoardProps) {
   const { execute: submitTurnActions, loading: turnLoading, error: turnError } = useSubmitTurnActions();
+  const { startListening: startTurnEndedListener, listening: listeningForTurnEnd, error: turnEndError } = useTurnEndedListener();
   const [playerHand, setPlayerHand] = useState<Card[]>([]);
   const [playerBoard, setPlayerBoard] = useState<(Card | null)[]>([
     null,
@@ -171,17 +173,33 @@ export function GameBoard({ signer, gameId, gameState, refreshGameState, addLog 
     }
   }, [gameState, signer, addLog]);
 
+  // Set up TurnEnded event listener
+  useEffect(() => {
+    if (gameId && gameState && gameState.status === "InProgress" && signer) {
+      const cleanup = startTurnEndedListener(gameId, (event) => {
+        // Get current player's Ethereum address to compare with event
+        const ss58Account = AccountId().dec(signer.publicKey);
+        const ethAddress = ss58ToEthereum(ss58Account);
+        
+        const isMyTurn = event.args.new_active_player.asHex().toLowerCase() === ethAddress.asHex().toLowerCase();
+        addLog(`🔄 Turn ended! Now it's ${isMyTurn ? "your" : "opponent's"} turn`);
+        
+        // Refresh game state when turn ends
+        refreshGameState();
+      });
+      
+      return cleanup;
+    }
+  }, [gameId, gameState, startTurnEndedListener, refreshGameState, addLog, signer]);
+
   // Initialize game for new games (when no gameState is provided)
   useEffect(() => {
     if (!gameState) {
-      // For new games, start with empty boards and no cards
-      setPlayerHand([]);
-      setPlayerBoard([null, null, null, null]);
-      setOpponentBoard([null, null, null, null]);
-      setOpponentHandCount(0);
-      addLog("New game started - boards are empty");
+      // For new games, sync as well.
+      refreshGameState();
     }
-  }, [gameState, addLog]);
+    // Only at the start.
+  }, []);
 
   // Animation timer effect
   useEffect(() => {
